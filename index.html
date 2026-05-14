@@ -26,7 +26,7 @@
   #install-btn{display:none;align-items:center;gap:8px;padding:.65rem 1.25rem;background:transparent;border:1px solid var(--border);border-radius:50px;color:var(--muted);font-family:var(--sans);font-size:.78rem;cursor:pointer;transition:all .2s;margin-bottom:1rem}
   #install-btn:hover{border-color:var(--accent);color:var(--accent);background:rgba(124,106,247,.06)}
   #install-btn svg{width:14px;height:14px;fill:currentColor}
-  #link-card{width:100%;background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:1.5rem;margin-bottom:1.5rem;transition:border-color .4s,box-shadow .4s}
+  #link-card{width:100%;background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:1.5rem;margin-bottom:1.5rem;transition:border-color .4s,box-shadow .4s,opacity .4s,filter .4s}
   #link-card.updating{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-glow)}
   #link-card.hidden-card{opacity:.4;filter:grayscale(1)}
   .card-label{font-size:.65rem;font-family:monospace;letter-spacing:.15em;text-transform:uppercase;color:var(--muted);margin-bottom:1rem;display:flex;align-items:center;gap:6px}
@@ -39,41 +39,12 @@
   #main-link:hover{transform:translateY(-2px);box-shadow:0 8px 30px var(--accent-glow)}
   #main-link.no-link{background:var(--border);color:var(--muted);box-shadow:none;cursor:default;pointer-events:none}
   .footer-note{font-size:.7rem;color:var(--muted);font-family:monospace}
-
-  /* Firebase config overlay */
-  #fb-setup{position:fixed;inset:0;background:rgba(8,8,16,.95);display:flex;align-items:center;justify-content:center;z-index:100;padding:2rem;backdrop-filter:blur(8px)}
-  #fb-setup.hidden{display:none}
-  .setup-card{background:#0f0f1a;border:1px solid #1e1e35;border-radius:16px;padding:2rem;width:100%;max-width:420px}
-  .setup-title{font-family:'JetBrains Mono',monospace;font-size:.65rem;letter-spacing:.15em;text-transform:uppercase;color:#4a4a6a;margin-bottom:1.5rem}
-  .setup-title::before{content:'// ';color:#00e5ff;opacity:.5}
-  .setup-input{width:100%;background:#080810;border:1px solid #1e1e35;border-radius:6px;color:#e8e8f5;font-family:'JetBrains Mono',monospace;font-size:.78rem;padding:.6rem .875rem;outline:none;margin-bottom:.75rem;transition:border-color .2s}
-  .setup-input:focus{border-color:#00e5ff;box-shadow:0 0 0 2px rgba(0,229,255,.07)}
-  .setup-input::placeholder{color:#4a4a6a}
-  .setup-hint{font-family:'JetBrains Mono',monospace;font-size:.58rem;color:#4a4a6a;margin-top:-0.5rem;margin-bottom:.75rem}
-  .setup-hint a{color:#00e5ff;text-decoration:none}
-  .setup-btn{width:100%;padding:.8rem;background:#7c6af7;border:none;border-radius:8px;color:#fff;font-family:'DM Sans',sans-serif;font-size:.85rem;font-weight:700;cursor:pointer;transition:all .2s}
-  .setup-btn:hover{background:#6a58e5;transform:translateY(-1px)}
-
   .flash{position:fixed;inset:0;background:var(--accent);opacity:0;pointer-events:none;z-index:999;transition:opacity .15s}
   .flash.show{opacity:.06}
 </style>
 </head>
 <body>
-
-<!-- Firebase setup overlay (shown on first visit) -->
-<div id="fb-setup">
-  <div class="setup-card">
-    <div class="setup-title">Configurar Firebase</div>
-    <input class="setup-input" id="s-url" type="url" placeholder="https://SEU-PROJETO-default-rtdb.firebaseio.com">
-    <div class="setup-hint">Realtime Database URL do seu projeto em <a href="https://console.firebase.google.com" target="_blank">Firebase Console</a></div>
-    <input class="setup-input" id="s-key" type="text" placeholder="Web API Key (apiKey)">
-    <div class="setup-hint">Project Settings → General → Web API Key</div>
-    <button class="setup-btn" onclick="setupFirebase()">Conectar e abrir página</button>
-  </div>
-</div>
-
 <div class="flash" id="flash"></div>
-
 <div class="wrapper">
   <div class="orb"></div>
   <h1>Bem-vindo ao<br><em>nosso espaço</em></h1>
@@ -94,48 +65,24 @@
   import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
   import { getDatabase, ref, onValue } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js';
 
-  const CFG_KEY = 'fb_site_config';
-  const saved = JSON.parse(localStorage.getItem(CFG_KEY)||'{}');
-
-  // If already configured, hide setup overlay and connect
-  if(saved.url && saved.key){
-    document.getElementById('fb-setup').classList.add('hidden');
-    connect(saved.url, saved.key);
-  } else {
-    // Pre-fill if partially saved
-    if(saved.url) document.getElementById('s-url').value = saved.url;
-    if(saved.key) document.getElementById('s-key').value = saved.key;
-  }
-
-  window.setupFirebase = function(){
-    const url = document.getElementById('s-url').value.trim();
-    const key = document.getElementById('s-key').value.trim();
-    if(!url||!key){ alert('Preencha a URL e a API Key!'); return; }
-    localStorage.setItem(CFG_KEY, JSON.stringify({url,key}));
-    document.getElementById('fb-setup').classList.add('hidden');
-    connect(url, key);
+  const firebaseConfig = {
+    apiKey: "AIzaSyAR6T8J5EZE5TT2a2OAGs2YDvmKu-XzXEQ",
+    databaseURL: "https://afiliados-5ae3a-default-rtdb.firebaseio.com",
   };
 
-  function connect(fbUrl, fbKey){
-    try{
-      const app = initializeApp({apiKey:fbKey, databaseURL:fbUrl}, 'site-'+Date.now());
-      const db = getDatabase(app);
-      const linkRef = ref(db,'link');
-      onValue(linkRef,(snap)=>{
-        const d = snap.val();
-        applyConfig(d);
-      });
-    }catch(e){
-      console.error('Firebase error:', e);
-    }
-  }
+  const app = initializeApp(firebaseConfig);
+  const db = getDatabase(app);
+  const linkRef = ref(db, 'link');
+
+  onValue(linkRef, (snap) => {
+    applyConfig(snap.val());
+  });
 
   function applyConfig(d){
     const link = document.getElementById('main-link');
     const desc = document.getElementById('link-desc');
     const card = document.getElementById('link-card');
 
-    // If not visible, grey out card
     if(d && d.visible === false){
       card.classList.add('hidden-card');
       link.classList.add('no-link');
@@ -159,7 +106,6 @@
 
     desc.textContent = d?.desc || '';
 
-    // Flash animation
     card.classList.add('updating');
     document.getElementById('flash').classList.add('show');
     setTimeout(()=>{ card.classList.remove('updating'); document.getElementById('flash').classList.remove('show'); }, 600);
@@ -171,15 +117,8 @@
   }
 
   let deferredPrompt = null;
-  window.addEventListener('beforeinstallprompt',(e)=>{
-    e.preventDefault(); deferredPrompt = e;
-    document.getElementById('install-btn').style.display = 'flex';
-  });
-  window.installPWA = function(){
-    if(!deferredPrompt) return;
-    deferredPrompt.prompt();
-    deferredPrompt.userChoice.then(()=>{ deferredPrompt=null; document.getElementById('install-btn').style.display='none'; });
-  };
+  window.addEventListener('beforeinstallprompt',(e)=>{ e.preventDefault(); deferredPrompt=e; document.getElementById('install-btn').style.display='flex'; });
+  window.installPWA = function(){ if(!deferredPrompt) return; deferredPrompt.prompt(); deferredPrompt.userChoice.then(()=>{ deferredPrompt=null; document.getElementById('install-btn').style.display='none'; }); };
   window.addEventListener('appinstalled',()=>{ document.getElementById('install-btn').style.display='none'; });
 </script>
 </body>

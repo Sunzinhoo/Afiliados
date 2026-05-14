@@ -6,12 +6,7 @@
 <title>Admin — Painel de Controle</title>
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Syne:wght@400;700;800&display=swap" rel="stylesheet">
 <style>
-  :root {
-    --bg:#080810;--surface:#0f0f1a;--surface2:#161625;--border:#1e1e35;
-    --accent:#ff3e6c;--accent2:#00e5ff;--green:#00ff88;
-    --text:#e8e8f5;--muted:#4a4a6a;
-    --mono:'JetBrains Mono',monospace;--sans:'Syne',sans-serif;
-  }
+  :root{--bg:#080810;--surface:#0f0f1a;--surface2:#161625;--border:#1e1e35;--accent:#ff3e6c;--accent2:#00e5ff;--green:#00ff88;--text:#e8e8f5;--muted:#4a4a6a;--mono:'JetBrains Mono',monospace;--sans:'Syne',sans-serif}
   *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
   body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:100vh;display:grid;place-items:center;padding:2rem}
   body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(255,255,255,.015) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.015) 1px,transparent 1px);background-size:48px 48px;pointer-events:none}
@@ -33,16 +28,6 @@
   .status-pill.connected{color:var(--green);border-color:rgba(0,255,136,.2);background:rgba(0,255,136,.05)}
   .status-pill.error .led{background:var(--accent)}
   .status-pill.error{color:var(--accent);border-color:rgba(255,62,108,.2);background:rgba(255,62,108,.05)}
-  .config-box{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:1.25rem;margin-bottom:1.5rem}
-  .config-box-title{font-family:var(--mono);font-size:.6rem;letter-spacing:.15em;text-transform:uppercase;color:var(--muted);margin-bottom:1rem}
-  .config-box-title::before{content:'// ';color:var(--accent2);opacity:.5}
-  .config-field{margin-bottom:.875rem}
-  .config-field:last-child{margin-bottom:0}
-  .config-input{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:var(--mono);font-size:.78rem;padding:.6rem .875rem;outline:none;transition:border-color .2s,box-shadow .2s}
-  .config-input:focus{border-color:var(--accent2);box-shadow:0 0 0 2px rgba(0,229,255,.07)}
-  .config-input::placeholder{color:var(--muted)}
-  .config-hint{font-family:var(--mono);font-size:.6rem;color:var(--muted);margin-top:4px}
-  .config-hint a{color:var(--accent2);text-decoration:none}
   .fields{display:flex;flex-direction:column;gap:1rem;margin-bottom:1.5rem}
   .field-wrap{display:flex;flex-direction:column;gap:6px}
   .field-label{display:flex;justify-content:space-between;align-items:center}
@@ -59,9 +44,7 @@
   .slider::before{content:'';position:absolute;width:16px;height:16px;left:3px;top:3px;background:var(--muted);border-radius:50%;transition:transform .2s,background .2s}
   .toggle input:checked+.slider{background:rgba(0,255,136,.2);border:1px solid rgba(0,255,136,.3)}
   .toggle input:checked+.slider::before{transform:translateX(18px);background:var(--green)}
-  .btn{width:100%;padding:1rem;border:none;border-radius:8px;color:#fff;font-family:var(--sans);font-size:.9rem;font-weight:700;letter-spacing:.06em;cursor:pointer;transition:all .2s;margin-bottom:0}
-  .btn-connect{background:var(--surface2);border:1px solid var(--border);color:var(--muted);font-size:.8rem;padding:.65rem;margin-bottom:0}
-  .btn-connect:hover{border-color:var(--accent2);color:var(--accent2)}
+  .btn{width:100%;padding:1rem;border:none;border-radius:8px;color:#fff;font-family:var(--sans);font-size:.9rem;font-weight:700;letter-spacing:.06em;cursor:pointer;transition:all .2s}
   .btn-publish{background:var(--accent);margin-bottom:1rem}
   .btn-publish:not(:disabled):hover{background:#e8305c;transform:translateY(-1px);box-shadow:0 8px 28px rgba(255,62,108,.35)}
   .btn-publish:disabled{background:var(--border);color:var(--muted);cursor:not-allowed}
@@ -100,23 +83,8 @@
       <div>
         <div class="status-pill" id="status-pill">
           <div class="led"></div>
-          <span id="status-text">aguardando config…</span>
+          <span id="status-text">conectando…</span>
         </div>
-      </div>
-    </div>
-
-    <div class="config-box">
-      <div class="config-box-title">Configuração Firebase</div>
-      <div class="config-field">
-        <input class="config-input" id="fb-url" type="url" placeholder="https://SEU-PROJETO-default-rtdb.firebaseio.com">
-        <div class="config-hint">Realtime Database → copie a URL do projeto em <a href="https://console.firebase.google.com" target="_blank">console.firebase.google.com</a></div>
-      </div>
-      <div class="config-field">
-        <input class="config-input" id="fb-key" type="text" placeholder="Web API Key (apiKey)">
-        <div class="config-hint">Project Settings → General → Web API Key</div>
-      </div>
-      <div class="config-field" style="margin-top:.75rem">
-        <button class="btn btn-connect" id="btn-connect" onclick="connectFirebase()">Conectar ao Firebase</button>
       </div>
     </div>
 
@@ -171,89 +139,75 @@
   import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
   import { getDatabase, ref, set, onValue } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js';
 
-  document.getElementById('f-text').addEventListener('input', function(){
-    document.getElementById('cnt-text').textContent = this.value.length+'/60';
-  });
-  document.getElementById('f-desc').addEventListener('input', function(){
-    document.getElementById('cnt-desc').textContent = this.value.length+'/100';
-  });
-
-  const CFG_KEY = 'fb_admin_config';
-  const saved = JSON.parse(localStorage.getItem(CFG_KEY)||'{}');
-  if(saved.url) document.getElementById('fb-url').value = saved.url;
-  if(saved.key) document.getElementById('fb-key').value = saved.key;
-
-  let linkRef = null;
-
-  window.connectFirebase = function(){
-    const fbUrl = document.getElementById('fb-url').value.trim();
-    const fbKey = document.getElementById('fb-key').value.trim();
-    if(!fbUrl||!fbKey){ showToast('Preencha a URL e a API Key!','err'); return; }
-    localStorage.setItem(CFG_KEY, JSON.stringify({url:fbUrl,key:fbKey}));
-    try{
-      const app = initializeApp({apiKey:fbKey,databaseURL:fbUrl},'admin-'+Date.now());
-      const db = getDatabase(app);
-      linkRef = ref(db,'link');
-      setStatus('connected','● conectado');
-      document.getElementById('btn-publish').disabled = false;
-      document.getElementById('btn-connect').textContent = '✓ Reconectar';
-      onValue(linkRef,(snap)=>{
-        const d = snap.val();
-        if(d) updatePreview(d);
-        if(d&&!document.getElementById('f-text').value&&d.text){
-          document.getElementById('f-text').value=d.text;
-          document.getElementById('cnt-text').textContent=d.text.length+'/60';
-        }
-        if(d&&!document.getElementById('f-url').value&&d.url) document.getElementById('f-url').value=d.url;
-        if(d&&!document.getElementById('f-desc').value&&d.desc){
-          document.getElementById('f-desc').value=d.desc;
-          document.getElementById('cnt-desc').textContent=d.desc.length+'/100';
-        }
-        if(d&&d.visible!==undefined) document.getElementById('f-visible').checked=d.visible;
-      },(err)=>{setStatus('error','✕ erro');showToast('Erro: '+err.message,'err');});
-      showToast('Firebase conectado!','ok');
-    }catch(e){setStatus('error','✕ falha');showToast('Erro: '+e.message,'err');}
+  const firebaseConfig = {
+    apiKey: "AIzaSyAR6T8J5EZE5TT2a2OAGs2YDvmKu-XzXEQ",
+    databaseURL: "https://afiliados-5ae3a-default-rtdb.firebaseio.com",
   };
 
-  window.publishLink = async function(){
-    if(!linkRef) return;
-    const config={
-      text:document.getElementById('f-text').value.trim()||'Acesse agora',
-      url:document.getElementById('f-url').value.trim()||'',
-      desc:document.getElementById('f-desc').value.trim(),
-      visible:document.getElementById('f-visible').checked,
-      updatedAt:new Date().toLocaleString('pt-BR'),
-    };
-    const btn=document.getElementById('btn-publish');
-    btn.disabled=true; btn.textContent='Publicando…';
-    try{
-      await set(linkRef,config);
-      btn.textContent='✓ Publicado!'; btn.classList.add('success');
-      showToast('Link publicado em tempo real!','ok');
-      setTimeout(()=>{ btn.textContent='Publicar Link'; btn.classList.remove('success'); btn.disabled=false; },2500);
-    }catch(e){ btn.textContent='Publicar Link'; btn.disabled=false; showToast('Erro: '+e.message,'err'); }
-  };
+  const app = initializeApp(firebaseConfig);
+  const db = getDatabase(app);
+  const linkRef = ref(db, 'link');
+
+  // char counters
+  document.getElementById('f-text').addEventListener('input', function(){ document.getElementById('cnt-text').textContent = this.value.length+'/60'; });
+  document.getElementById('f-desc').addEventListener('input', function(){ document.getElementById('cnt-desc').textContent = this.value.length+'/100'; });
+
+  function setStatus(type, text){
+    document.getElementById('status-pill').className = 'status-pill '+type;
+    document.getElementById('status-text').textContent = text;
+  }
+
+  function showToast(msg, type){
+    const t = document.getElementById('toast');
+    t.textContent = msg; t.className = 'toast '+type+' show';
+    setTimeout(()=> t.className = 'toast '+type, 2800);
+  }
 
   function updatePreview(d){
-    const s=(id,v)=>{ const el=document.getElementById(id); el.textContent=v||'—'; el.classList.toggle('empty',!v); };
+    const s = (id,v) => { const el=document.getElementById(id); el.textContent=v||'—'; el.classList.toggle('empty',!v); };
     s('pv-text',d.text); s('pv-url',d.url); s('pv-desc',d.desc);
-    const pv=document.getElementById('pv-visible');
-    pv.textContent=d.visible?'sim':'não'; pv.classList.remove('empty');
+    const pv = document.getElementById('pv-visible');
+    pv.textContent = d.visible ? 'sim' : 'não'; pv.classList.remove('empty');
     s('pv-time',d.updatedAt);
   }
 
-  function setStatus(type,text){
-    document.getElementById('status-pill').className='status-pill '+type;
-    document.getElementById('status-text').textContent=text;
-  }
+  // Listen for live changes
+  onValue(linkRef, (snap) => {
+    setStatus('connected','● conectado');
+    document.getElementById('btn-publish').disabled = false;
+    const d = snap.val();
+    if(d){
+      updatePreview(d);
+      if(!document.getElementById('f-text').value && d.text){ document.getElementById('f-text').value=d.text; document.getElementById('cnt-text').textContent=d.text.length+'/60'; }
+      if(!document.getElementById('f-url').value && d.url) document.getElementById('f-url').value=d.url;
+      if(!document.getElementById('f-desc').value && d.desc){ document.getElementById('f-desc').value=d.desc; document.getElementById('cnt-desc').textContent=d.desc.length+'/100'; }
+      if(d.visible !== undefined) document.getElementById('f-visible').checked = d.visible;
+    }
+  }, (err) => {
+    setStatus('error','✕ erro de conexão');
+    showToast('Erro Firebase: '+err.message, 'err');
+  });
 
-  window.showToast=function(msg,type){
-    const t=document.getElementById('toast');
-    t.textContent=msg; t.className='toast '+type+' show';
-    setTimeout(()=>t.className='toast '+type,2800);
+  window.publishLink = async function(){
+    const config = {
+      text:    document.getElementById('f-text').value.trim() || 'Acesse agora',
+      url:     document.getElementById('f-url').value.trim() || '',
+      desc:    document.getElementById('f-desc').value.trim(),
+      visible: document.getElementById('f-visible').checked,
+      updatedAt: new Date().toLocaleString('pt-BR'),
+    };
+    const btn = document.getElementById('btn-publish');
+    btn.disabled=true; btn.textContent='Publicando…';
+    try{
+      await set(linkRef, config);
+      btn.textContent='✓ Publicado!'; btn.classList.add('success');
+      showToast('Link publicado em tempo real! 🚀','ok');
+      setTimeout(()=>{ btn.textContent='Publicar Link'; btn.classList.remove('success'); btn.disabled=false; }, 2500);
+    }catch(e){
+      btn.textContent='Publicar Link'; btn.disabled=false;
+      showToast('Erro: '+e.message,'err');
+    }
   };
-
-  if(saved.url&&saved.key) setTimeout(()=>window.connectFirebase(),300);
 </script>
 </body>
 </html>
