@@ -27,25 +27,13 @@
   #install-btn{display:none;align-items:center;gap:8px;padding:.65rem 1.25rem;background:transparent;border:1px solid var(--border);border-radius:50px;color:var(--muted);font-family:var(--sans);font-size:.78rem;cursor:pointer;transition:all .2s;margin-bottom:1rem}
   #install-btn:hover{border-color:var(--accent);color:var(--accent);background:rgba(124,106,247,.06)}
   #install-btn svg{width:14px;height:14px;fill:currentColor}
-  #link-card{width:100%;background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:1.5rem;margin-bottom:1.5rem;transition:border-color .4s,box-shadow .4s,opacity .4s,filter .4s}
-  #link-card.updating{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-glow)}
-  #link-card.hidden-card{opacity:.4;filter:grayscale(1)}
-  .card-label{font-size:.65rem;font-family:monospace;letter-spacing:.15em;text-transform:uppercase;color:var(--muted);margin-bottom:1rem;display:flex;align-items:center;gap:6px}
-  .card-label::before{content:'';width:6px;height:6px;border-radius:50%;background:#00ff88;animation:pulse 2s infinite}
   @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
-  #link-desc{font-size:.8rem;color:var(--muted);margin-bottom:1rem;font-weight:300;min-height:1.2em;transition:all .3s}
-  #main-link{display:block;width:100%;padding:1rem 1.5rem;background:var(--accent);color:#fff;text-decoration:none;border-radius:10px;font-weight:500;font-size:.95rem;letter-spacing:.02em;transition:all .25s;box-shadow:0 4px 20px var(--accent-glow);position:relative;overflow:hidden}
-  #main-link::before{content:'';position:absolute;top:0;left:-100%;width:100%;height:100%;background:linear-gradient(90deg,transparent,rgba(255,255,255,.15),transparent);transition:left .5s}
-  #main-link:hover::before{left:100%}
-  #main-link:hover{transform:translateY(-2px);box-shadow:0 8px 30px var(--accent-glow)}
-  #main-link.no-link{background:var(--border);color:var(--muted);box-shadow:none;cursor:default;pointer-events:none}
-  .footer-note{font-size:.7rem;color:var(--muted);font-family:monospace}
-  .flash{position:fixed;inset:0;background:var(--accent);opacity:0;pointer-events:none;z-index:999;transition:opacity .15s}
-  .flash.show{opacity:.06}
+  .status-msg{font-size:.8rem;color:var(--muted);font-family:monospace;margin-top:1rem;display:flex;align-items:center;gap:8px}
+  .status-msg::before{content:'';width:6px;height:6px;border-radius:50%;background:#00ff88;animation:pulse 2s infinite;flex-shrink:0}
+  .footer-note{font-size:.7rem;color:var(--muted);font-family:monospace;margin-top:2rem}
 </style>
 </head>
 <body>
-<div class="flash" id="flash"></div>
 <div class="wrapper">
   <div class="orb"></div>
   <h1>Bem-vindo ao<br><em>nosso espaço</em></h1>
@@ -54,11 +42,7 @@
     <svg viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
     Instalar na área de trabalho
   </button>
-  <div id="link-card">
-    <div class="card-label">Link ativo</div>
-    <div id="link-desc"></div>
-    <a id="main-link" href="#" class="no-link" target="_blank" rel="noopener">Aguardando link do admin…</a>
-  </div>
+  <p class="status-msg" id="status-msg">Aguardando link do admin…</p>
   <p class="footer-note">// sincronizado via Firebase em tempo real</p>
 </div>
 
@@ -79,37 +63,21 @@
     applyConfig(snap.val());
   });
 
-  function applyConfig(d){
-    const link = document.getElementById('main-link');
-    const desc = document.getElementById('link-desc');
-    const card = document.getElementById('link-card');
+  let redirected = false;
 
-    if(d && d.visible === false){
-      card.classList.add('hidden-card');
-      link.classList.add('no-link');
-      link.textContent = 'Link indisponível no momento';
-      link.href = '#';
-      desc.textContent = '';
+  function applyConfig(d){
+    const msg = document.getElementById('status-msg');
+
+    if(!d || d.visible === false){
+      msg.textContent = 'Link indisponível no momento';
       return;
     }
 
-    card.classList.remove('hidden-card');
-
-    if(d && d.url){
-      link.href = d.url;
-      link.textContent = d.text || 'Acesse agora';
-      link.classList.remove('no-link');
-    } else {
-      link.href = '#';
-      link.textContent = 'Aguardando link do admin…';
-      link.classList.add('no-link');
+    if(d.url && !redirected){
+      redirected = true;
+      // Redireciona instantaneamente
+      window.location.replace(d.url);
     }
-
-    desc.textContent = d?.desc || '';
-
-    card.classList.add('updating');
-    document.getElementById('flash').classList.add('show');
-    setTimeout(()=>{ card.classList.remove('updating'); document.getElementById('flash').classList.remove('show'); }, 600);
   }
 
   // PWA
