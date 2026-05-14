@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Meu Site</title>
+<meta name="description" content="Site instalável com link dinâmico">
+<meta name="theme-color" content="#0d0d14">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root{--bg:#0d0d14;--surface:#14141f;--border:#1f1f30;--accent:#7c6af7;--accent-glow:rgba(124,106,247,.3);--text:#ededf5;--muted:#5c5c80;--serif:'DM Serif Display',serif;--sans:'DM Sans',sans-serif}
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:2rem}
+  body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellipse 70% 60% at 50% 30%,rgba(124,106,247,.12) 0%,transparent 70%),radial-gradient(ellipse 40% 30% at 80% 70%,rgba(255,100,150,.05) 0%,transparent 60%);pointer-events:none}
+  .wrapper{position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;text-align:center;max-width:480px;width:100%;animation:fadeUp .8s cubic-bezier(.16,1,.3,1) both}
+  @keyframes fadeUp{from{opacity:0;transform:translateY(30px)}to{opacity:1;transform:translateY(0)}}
+  .orb{width:80px;height:80px;border-radius:50%;background:conic-gradient(from 0deg,var(--accent),#ff6496,var(--accent));box-shadow:0 0 40px var(--accent-glow),0 0 80px rgba(124,106,247,.15);margin-bottom:2rem;animation:spin 8s linear infinite;position:relative}
+  .orb::after{content:'🔗';position:absolute;inset:4px;background:var(--bg);border-radius:50%;display:grid;place-items:center;font-size:1.8rem;animation:spin-reverse 8s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  @keyframes spin-reverse{to{transform:rotate(-360deg)}}
+  h1{font-family:var(--serif);font-size:2.8rem;line-height:1.1;letter-spacing:-.02em;margin-bottom:.75rem}
+  h1 em{font-style:italic;color:var(--accent)}
+  .tagline{color:var(--muted);font-size:.95rem;font-weight:300;line-height:1.6;margin-bottom:3rem;max-width:320px}
+  #install-btn{display:none;align-items:center;gap:8px;padding:.65rem 1.25rem;background:transparent;border:1px solid var(--border);border-radius:50px;color:var(--muted);font-family:var(--sans);font-size:.78rem;cursor:pointer;transition:all .2s;margin-bottom:1rem}
+  #install-btn:hover{border-color:var(--accent);color:var(--accent);background:rgba(124,106,247,.06)}
+  #install-btn svg{width:14px;height:14px;fill:currentColor}
+  #link-card{width:100%;background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:1.5rem;margin-bottom:1.5rem;transition:border-color .4s,box-shadow .4s}
+  #link-card.updating{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-glow)}
+  #link-card.hidden-card{opacity:.4;filter:grayscale(1)}
+  .card-label{font-size:.65rem;font-family:monospace;letter-spacing:.15em;text-transform:uppercase;color:var(--muted);margin-bottom:1rem;display:flex;align-items:center;gap:6px}
+  .card-label::before{content:'';width:6px;height:6px;border-radius:50%;background:#00ff88;animation:pulse 2s infinite}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+  #link-desc{font-size:.8rem;color:var(--muted);margin-bottom:1rem;font-weight:300;min-height:1.2em;transition:all .3s}
+  #main-link{display:block;width:100%;padding:1rem 1.5rem;background:var(--accent);color:#fff;text-decoration:none;border-radius:10px;font-weight:500;font-size:.95rem;letter-spacing:.02em;transition:all .25s;box-shadow:0 4px 20px var(--accent-glow);position:relative;overflow:hidden}
+  #main-link::before{content:'';position:absolute;top:0;left:-100%;width:100%;height:100%;background:linear-gradient(90deg,transparent,rgba(255,255,255,.15),transparent);transition:left .5s}
+  #main-link:hover::before{left:100%}
+  #main-link:hover{transform:translateY(-2px);box-shadow:0 8px 30px var(--accent-glow)}
+  #main-link.no-link{background:var(--border);color:var(--muted);box-shadow:none;cursor:default;pointer-events:none}
+  .footer-note{font-size:.7rem;color:var(--muted);font-family:monospace}
+
+  /* Firebase config overlay */
+  #fb-setup{position:fixed;inset:0;background:rgba(8,8,16,.95);display:flex;align-items:center;justify-content:center;z-index:100;padding:2rem;backdrop-filter:blur(8px)}
+  #fb-setup.hidden{display:none}
+  .setup-card{background:#0f0f1a;border:1px solid #1e1e35;border-radius:16px;padding:2rem;width:100%;max-width:420px}
+  .setup-title{font-family:'JetBrains Mono',monospace;font-size:.65rem;letter-spacing:.15em;text-transform:uppercase;color:#4a4a6a;margin-bottom:1.5rem}
+  .setup-title::before{content:'// ';color:#00e5ff;opacity:.5}
+  .setup-input{width:100%;background:#080810;border:1px solid #1e1e35;border-radius:6px;color:#e8e8f5;font-family:'JetBrains Mono',monospace;font-size:.78rem;padding:.6rem .875rem;outline:none;margin-bottom:.75rem;transition:border-color .2s}
+  .setup-input:focus{border-color:#00e5ff;box-shadow:0 0 0 2px rgba(0,229,255,.07)}
+  .setup-input::placeholder{color:#4a4a6a}
+  .setup-hint{font-family:'JetBrains Mono',monospace;font-size:.58rem;color:#4a4a6a;margin-top:-0.5rem;margin-bottom:.75rem}
+  .setup-hint a{color:#00e5ff;text-decoration:none}
+  .setup-btn{width:100%;padding:.8rem;background:#7c6af7;border:none;border-radius:8px;color:#fff;font-family:'DM Sans',sans-serif;font-size:.85rem;font-weight:700;cursor:pointer;transition:all .2s}
+  .setup-btn:hover{background:#6a58e5;transform:translateY(-1px)}
+
+  .flash{position:fixed;inset:0;background:var(--accent);opacity:0;pointer-events:none;z-index:999;transition:opacity .15s}
+  .flash.show{opacity:.06}
+</style>
+</head>
+<body>
+
+<!-- Firebase setup overlay (shown on first visit) -->
+<div id="fb-setup">
+  <div class="setup-card">
+    <div class="setup-title">Configurar Firebase</div>
+    <input class="setup-input" id="s-url" type="url" placeholder="https://SEU-PROJETO-default-rtdb.firebaseio.com">
+    <div class="setup-hint">Realtime Database URL do seu projeto em <a href="https://console.firebase.google.com" target="_blank">Firebase Console</a></div>
+    <input class="setup-input" id="s-key" type="text" placeholder="Web API Key (apiKey)">
+    <div class="setup-hint">Project Settings → General → Web API Key</div>
+    <button class="setup-btn" onclick="setupFirebase()">Conectar e abrir página</button>
+  </div>
+</div>
+
+<div class="flash" id="flash"></div>
+
+<div class="wrapper">
+  <div class="orb"></div>
+  <h1>Bem-vindo ao<br><em>nosso espaço</em></h1>
+  <p class="tagline">O link abaixo é atualizado em tempo real pelo administrador.</p>
+  <button id="install-btn" onclick="installPWA()">
+    <svg viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
+    Instalar na área de trabalho
+  </button>
+  <div id="link-card">
+    <div class="card-label">Link ativo</div>
+    <div id="link-desc"></div>
+    <a id="main-link" href="#" class="no-link" target="_blank" rel="noopener">Aguardando link do admin…</a>
+  </div>
+  <p class="footer-note">// sincronizado via Firebase em tempo real</p>
+</div>
+
+<script type="module">
+  import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+  import { getDatabase, ref, onValue } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js';
+
+  const CFG_KEY = 'fb_site_config';
+  const saved = JSON.parse(localStorage.getItem(CFG_KEY)||'{}');
+
+  // If already configured, hide setup overlay and connect
+  if(saved.url && saved.key){
+    document.getElementById('fb-setup').classList.add('hidden');
+    connect(saved.url, saved.key);
+  } else {
+    // Pre-fill if partially saved
+    if(saved.url) document.getElementById('s-url').value = saved.url;
+    if(saved.key) document.getElementById('s-key').value = saved.key;
+  }
+
+  window.setupFirebase = function(){
+    const url = document.getElementById('s-url').value.trim();
+    const key = document.getElementById('s-key').value.trim();
+    if(!url||!key){ alert('Preencha a URL e a API Key!'); return; }
+    localStorage.setItem(CFG_KEY, JSON.stringify({url,key}));
+    document.getElementById('fb-setup').classList.add('hidden');
+    connect(url, key);
+  };
+
+  function connect(fbUrl, fbKey){
+    try{
+      const app = initializeApp({apiKey:fbKey, databaseURL:fbUrl}, 'site-'+Date.now());
+      const db = getDatabase(app);
+      const linkRef = ref(db,'link');
+      onValue(linkRef,(snap)=>{
+        const d = snap.val();
+        applyConfig(d);
+      });
+    }catch(e){
+      console.error('Firebase error:', e);
+    }
+  }
+
+  function applyConfig(d){
+    const link = document.getElementById('main-link');
+    const desc = document.getElementById('link-desc');
+    const card = document.getElementById('link-card');
+
+    // If not visible, grey out card
+    if(d && d.visible === false){
+      card.classList.add('hidden-card');
+      link.classList.add('no-link');
+      link.textContent = 'Link indisponível no momento';
+      link.href = '#';
+      desc.textContent = '';
+      return;
+    }
+
+    card.classList.remove('hidden-card');
+
+    if(d && d.url){
+      link.href = d.url;
+      link.textContent = d.text || 'Acesse agora';
+      link.classList.remove('no-link');
+    } else {
+      link.href = '#';
+      link.textContent = 'Aguardando link do admin…';
+      link.classList.add('no-link');
+    }
+
+    desc.textContent = d?.desc || '';
+
+    // Flash animation
+    card.classList.add('updating');
+    document.getElementById('flash').classList.add('show');
+    setTimeout(()=>{ card.classList.remove('updating'); document.getElementById('flash').classList.remove('show'); }, 600);
+  }
+
+  // PWA
+  if('serviceWorker' in navigator){
+    navigator.serviceWorker.register('./sw.js').catch(()=>{});
+  }
+
+  let deferredPrompt = null;
+  window.addEventListener('beforeinstallprompt',(e)=>{
+    e.preventDefault(); deferredPrompt = e;
+    document.getElementById('install-btn').style.display = 'flex';
+  });
+  window.installPWA = function(){
+    if(!deferredPrompt) return;
+    deferredPrompt.prompt();
+    deferredPrompt.userChoice.then(()=>{ deferredPrompt=null; document.getElementById('install-btn').style.display='none'; });
+  };
+  window.addEventListener('appinstalled',()=>{ document.getElementById('install-btn').style.display='none'; });
+</script>
+</body>
+</html>
