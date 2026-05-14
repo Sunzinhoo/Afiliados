@@ -4,8 +4,8 @@
   "description": "Site instalável com link dinâmico",
   "start_url": "./index.html",
   "display": "standalone",
-  "background_color": "#0d0d14",
-  "theme_color": "#0d0d14",
+  "background_color": "#FFE600",
+  "theme_color": "#FFE600",
   "orientation": "portrait",
   "icons": [
     {
