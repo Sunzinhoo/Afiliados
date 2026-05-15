@@ -407,14 +407,6 @@
 
   // Nicknames map: { ip: nickname }
   let nickMap = {};
-  onValue(nicksRef, (snap) => {
-    nickMap = snap.val() || {};
-    // Re-render device list if already loaded
-    const list = document.getElementById('device-list');
-    if(list && list.children.length && !list.querySelector('.empty-monitor')){
-      // trigger re-render by dispatching a fake value event — handled below
-    }
-  });
 
   let currentNickIp = null;
 
@@ -443,6 +435,7 @@
       nickMap = updates;
       closeNickModal();
       showToast('Apelido salvo!', 'ok');
+      renderDevices(lastDevices);
     } catch(e){
       showToast('Erro ao salvar: ' + e.message, 'err');
     }
@@ -559,28 +552,22 @@
 
   // ── Monitoramento ─────────────────────────────────────────
   let knownIds = new Set();
+  let lastDevices = [];
 
-  onValue(acessosRef, (snap)=>{
-    const data = snap.val();
+  function renderDevices(items){
     const list = document.getElementById('device-list');
-
-    if(!data){ list.innerHTML='<div class="empty-monitor">Nenhum acesso ainda</div>'; updateStats([]); return; }
-
-    const items = Object.entries(data)
-      .map(([id,v])=>({id,...v}))
-      .sort((a,b)=>(b.tsUnix||0)-(a.tsUnix||0));
-
+    lastDevices = items;
+    if(!items || !items.length){ list.innerHTML='<div class="empty-monitor">Nenhum acesso ainda</div>'; return; }
     updateStats(items);
     list.innerHTML='';
-
     items.forEach(item=>{
       const isNew = !knownIds.has(item.id);
       knownIds.add(item.id);
       const el = document.createElement('div');
       el.className='device-item';
       const icon = item.device?.includes('Mobile') || item.device?.includes('Tablet') ? '📱' : '💻';
-      const ipKey  = item.ip ? item.ip.replace(/\./g,'_') : '';
-      const nick   = ipKey && nickMap[ipKey] ? nickMap[ipKey] : '';
+      const ipKey = item.ip ? item.ip.replace(/\./g,'_') : '';
+      const nick  = ipKey && nickMap[ipKey] ? nickMap[ipKey] : '';
       el.innerHTML=`
         <div class="device-icon">${icon}</div>
         <div class="device-info">
@@ -602,12 +589,25 @@
         ${isNew ? '<div class="new-dot"></div>' : ''}
       `;
       list.appendChild(el);
-
-      // Notificação de novo acesso (opcional)
       if(isNew && knownIds.size > 1 && Notification.permission==='granted'){
         new Notification('Novo acesso!',{ body:`${icon} ${item.device||''} · ${item.os||''} · ${item.country||''}`, icon:'icon-192.png', tag:'access-'+item.id });
       }
     });
+  }
+
+  onValue(acessosRef, (snap)=>{
+    const data = snap.val();
+    if(!data){ renderDevices([]); updateStats([]); return; }
+    const items = Object.entries(data)
+      .map(([id,v])=>({id,...v}))
+      .sort((a,b)=>(b.tsUnix||0)-(a.tsUnix||0));
+    renderDevices(items);
+  });
+
+  // Re-render when nicknames change
+  onValue(nicksRef, (snap)=>{
+    nickMap = snap.val() || {};
+    if(lastDevices.length) renderDevices(lastDevices);
   });
 
   function updateStats(items){
