@@ -132,6 +132,73 @@
   .toast.ok{background:var(--green);color:#000}
   .toast.err{background:var(--accent);color:#fff}
   .toast.warn{background:var(--yellow);color:#000}
+
+  /* ── Mobile ─────────────────────────────────────────────── */
+  @media (max-width: 600px) {
+    body { padding: .75rem; }
+    .shell { max-width: 100%; }
+    .topbar { padding: .6rem 1rem; border-radius: 10px 10px 0 0; }
+    .topbar-title { font-size: .58rem; }
+    .card { padding: 1.25rem 1rem; }
+    h1 { font-size: 1.5rem; }
+    .header-row { margin-bottom: 1.25rem; }
+    .badge { font-size: .55rem; padding: 3px 8px; }
+    .status-pill { font-size: .58rem; padding: 3px 8px; }
+    .status-pill .led { width: 5px; height: 5px; }
+
+    /* notif banner */
+    .notif-banner { flex-direction: column; align-items: flex-start; gap: .5rem; padding: .75rem; }
+    .notif-btn { width: 100%; text-align: center; padding: .5rem; }
+    .notif-banner-text { font-size: .65rem; }
+
+    /* notif log */
+    .notif-log-body { max-height: 100px; }
+    .notif-entry { font-size: .62rem; }
+    .notif-entry-time { font-size: .55rem; }
+
+    /* url input */
+    input[type="url"] { font-size: .75rem; padding: .65rem .875rem; }
+
+    /* timer */
+    .timer-box { padding: .75rem 1rem; }
+    .timer-label { font-size: .55rem; }
+    .timer-val { font-size: .9rem; }
+
+    /* toggle */
+    .toggle-row { padding: .6rem .875rem; }
+    .toggle-label { font-size: .7rem; }
+
+    /* btn publish */
+    .btn { padding: .875rem; font-size: .85rem; }
+
+    /* preview */
+    .preview-body { padding: .75rem; }
+    .preview-row { gap: .5rem; }
+    .pk { min-width: 75px; font-size: .6rem; }
+    .pv { font-size: .65rem; }
+
+    /* monitor stats */
+    .monitor-stats { grid-template-columns: repeat(3,1fr); }
+    .stat-num { font-size: 1.2rem; }
+    .stat-label { font-size: .5rem; }
+    .monitor-header { padding: .65rem 1rem; }
+    .monitor-title { font-size: .58rem; }
+
+    /* device list */
+    .device-list { max-height: 260px; }
+    .device-item { padding: .65rem .875rem; gap: 8px; }
+    .device-icon { font-size: 1.1rem; }
+    .device-name { font-size: .68rem; }
+    .device-time { font-size: .55rem; }
+    .meta-tag { font-size: .55rem; padding: 1px 5px; }
+    .clear-btn { font-size: .55rem; padding: 2px 6px; }
+  }
+
+  @media (max-width: 380px) {
+    h1 { font-size: 1.3rem; }
+    .card { padding: 1rem .875rem; }
+    .stat-num { font-size: 1rem; }
+  }
 </style>
 </head>
 <body>
