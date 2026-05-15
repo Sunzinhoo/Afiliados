@@ -551,81 +551,58 @@
     const descEl  = document.getElementById('preview-desc');
     const domEl   = document.getElementById('preview-domain');
 
-    // Show loading
-    card.style.display = 'block';
+    card.style.display    = 'block';
     loading.style.display = 'block';
     titleEl.style.display = 'none';
     descEl.style.display  = 'none';
     domEl.style.display   = 'none';
     imgEl.style.display   = 'none';
 
+    // Tenta jsonlink primeiro (resolve encurtadores como meli.la)
     try {
-      // Use allorigins proxy to fetch page HTML
-      const proxy = 'https://api.allorigins.win/get?url=' + encodeURIComponent(url);
-      const res   = await fetch(proxy, { signal: AbortSignal.timeout(8000) });
-      const data  = await res.json();
-      const html  = data.contents || '';
+      const jRes  = await fetch('https://jsonlink.io/api/extract?url=' + encodeURIComponent(url), { signal: AbortSignal.timeout(6000) });
+      const jData = await jRes.json();
+      if(jData && (jData.title || jData.description)){
+        loading.style.display = 'none';
+        if(jData.title){ titleEl.textContent = jData.title; titleEl.style.display = 'block'; }
+        if(jData.description){ const d = jData.description; descEl.textContent = d.length > 120 ? d.slice(0,120)+'…' : d; descEl.style.display = 'block'; }
+        try { domEl.textContent = jData.domain || new URL(url).hostname.replace('www.',''); } catch(e){ domEl.textContent = url; }
+        domEl.style.display = 'block';
+        if(jData.images && jData.images[0]){ imgEl.src = jData.images[0]; imgEl.style.display = 'block'; imgEl.onerror = ()=>{ imgEl.style.display='none'; }; }
+        return;
+      }
+    } catch(e){}
 
-      // Parse meta tags
-      const doc = new DOMParser().parseFromString(html, 'text/html');
+    // Fallback: allorigins proxy
+    try {
+      const proxyRes  = await fetch('https://api.allorigins.win/get?url=' + encodeURIComponent(url), { signal: AbortSignal.timeout(8000) });
+      const proxyData = await proxyRes.json();
+      const rawHtml   = proxyData.contents || '';
+      const parsedDoc = new DOMParser().parseFromString(rawHtml, 'text/html');
 
       const getMeta = (selectors) => {
         for(const s of selectors){
-          const el = doc.querySelector(s);
-          if(el){ const v = el.getAttribute('content') || el.getAttribute('href') || el.textContent; if(v && v.trim()) return v.trim(); }
+          const el = parsedDoc.querySelector(s);
+          if(el){ const v = el.getAttribute('content') || el.textContent; if(v && v.trim()) return v.trim(); }
         }
         return '';
       };
 
-      const title = getMeta([
-        'meta[property="og:title"]',
-        'meta[name="twitter:title"]',
-        'title',
-      ]);
-
-      const desc = getMeta([
-        'meta[property="og:description"]',
-        'meta[name="twitter:description"]',
-        'meta[name="description"]',
-      ]);
-
-      let image = getMeta([
-        'meta[property="og:image"]',
-        'meta[name="twitter:image"]',
-        'meta[name="twitter:image:src"]',
-      ]);
-
-      // Make relative image URLs absolute
-      if(image && image.startsWith('/')){
-        const u = new URL(url);
-        image = u.origin + image;
-      }
-
-      const domain = (() => { try { return new URL(url).hostname.replace('www.',''); } catch(e){ return url; } })();
+      const title  = getMeta(['meta[property="og:title"]','meta[name="twitter:title"]','title']);
+      const desc   = getMeta(['meta[property="og:description"]','meta[name="description"]']);
+      const image  = getMeta(['meta[property="og:image"]','meta[name="twitter:image"]']);
+      const domain = (() => { try { return new URL(proxyData.status?.url || url).hostname.replace('www.',''); } catch(e){ return url; } })();
 
       loading.style.display = 'none';
-
-      if(title){
-        titleEl.textContent = title;
-        titleEl.style.display = 'block';
-      }
-      if(desc){
-        descEl.textContent = desc.length > 120 ? desc.slice(0,120)+'…' : desc;
-        descEl.style.display = 'block';
-      }
-      domEl.textContent = domain;
-      domEl.style.display = 'block';
-
-      if(image){
-        imgEl.src = image;
-        imgEl.style.display = 'block';
-        imgEl.onerror = () => { imgEl.style.display = 'none'; };
-      }
+      if(title){ titleEl.textContent = title; titleEl.style.display = 'block'; }
+      if(desc){  const d = desc; descEl.textContent = d.length>120 ? d.slice(0,120)+'…' : d; descEl.style.display = 'block'; }
+      domEl.textContent = domain; domEl.style.display = 'block';
+      if(image){ imgEl.src = image; imgEl.style.display = 'block'; imgEl.onerror = ()=>{ imgEl.style.display='none'; }; }
 
     } catch(e) {
       loading.style.display = 'none';
-      domEl.textContent = 'Não foi possível carregar preview';
-      domEl.style.display = 'block';
+      domEl.textContent     = '⚠️ Preview indisponível para este link';
+      domEl.style.display   = 'block';
     }
   }
 
