@@ -508,6 +508,21 @@
       const pv=document.getElementById('pv-visible'); pv.textContent=d.visible?'sim':'não'; pv.className='pv';
       s('pv-time',d.publishedAt?new Date(d.publishedAt).toLocaleString('pt-BR'):d.updatedAt);
       if(!document.getElementById('f-url').value&&d.url) document.getElementById('f-url').value=d.url;
+      // Restaura preview salvo
+      if(d.preview && (d.preview.title || d.preview.desc)){
+        const card    = document.getElementById('link-preview');
+        const titleEl = document.getElementById('preview-title');
+        const descEl  = document.getElementById('preview-desc');
+        const domEl   = document.getElementById('preview-domain');
+        const imgEl   = document.getElementById('preview-img');
+        const loading = document.getElementById('preview-loading');
+        card.style.display    = 'block';
+        loading.style.display = 'none';
+        if(d.preview.title){ titleEl.textContent=d.preview.title; titleEl.style.display='block'; }
+        if(d.preview.desc){  descEl.textContent=d.preview.desc;   descEl.style.display='block';  }
+        if(d.preview.domain){ domEl.textContent=d.preview.domain; domEl.style.display='block';   }
+        if(d.preview.image && d.preview.image.startsWith('http')){ imgEl.src=d.preview.image; imgEl.style.display='block'; imgEl.onerror=()=>{ imgEl.style.display='none'; }; }
+      }
       if(d.visible!==undefined) document.getElementById('f-visible').checked=d.visible;
       if(d.publishedAt) startTimer(d.publishedAt);
     }
