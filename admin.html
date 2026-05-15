@@ -130,7 +130,7 @@
   /* Nickname */
   .nick-btn{background:transparent;border:1px solid var(--border);border-radius:4px;color:var(--muted);font-family:var(--mono);font-size:.58rem;padding:2px 6px;cursor:pointer;transition:all .2s;white-space:nowrap}
   .nick-btn:hover{border-color:var(--accent2);color:var(--accent2)}
-  .nick-tag{display:inline-flex;align-items:center;gap:4px;background:rgba(0,229,255,.1);border:1px solid rgba(0,229,255,.2);border-radius:4px;padding:2px 7px;font-family:var(--mono);font-size:.62rem;color:var(--accent2)}
+  .nick-tag{display:inline-flex;align-items:center;gap:5px;background:rgba(0,229,255,.15);border:1px solid rgba(0,229,255,.4);border-radius:6px;padding:3px 10px;font-family:var(--mono);font-size:.72rem;font-weight:700;color:var(--accent2);letter-spacing:.04em}
   .nick-tag .del{cursor:pointer;opacity:.5;font-size:.7rem;line-height:1}
   .nick-tag .del:hover{opacity:1;color:var(--accent)}
   .nick-modal{position:fixed;inset:0;background:rgba(0,0,0,.7);display:flex;align-items:center;justify-content:center;z-index:9999;padding:1.5rem;backdrop-filter:blur(4px)}
@@ -434,12 +434,18 @@
   window.saveNick = async function(){
     if(!currentNickIp) return;
     const nick = document.getElementById('nick-input').value.trim();
-    const updates = { ...nickMap };
-    if(nick){ updates[currentNickIp.replace(/\./g,'_')] = nick; }
-    else { delete updates[currentNickIp.replace(/\./g,'_')]; }
-    await set(nicksRef, updates);
-    closeNickModal();
-    showToast('Apelido salvo!', 'ok');
+    const ipKey = currentNickIp.replace(/\./g, '_');
+    try {
+      const updates = Object.assign({}, nickMap);
+      if(nick){ updates[ipKey] = nick; }
+      else { delete updates[ipKey]; }
+      await set(nicksRef, updates);
+      nickMap = updates;
+      closeNickModal();
+      showToast('Apelido salvo!', 'ok');
+    } catch(e){
+      showToast('Erro ao salvar: ' + e.message, 'err');
+    }
   };
 
   // Close modal on backdrop click
@@ -579,9 +585,9 @@
         <div class="device-icon">${icon}</div>
         <div class="device-info">
           <div class="device-top">
-            <span class="device-name">
-              ${nick ? `<span class="nick-tag">${nick} <span class="del" onclick="event.stopPropagation();openNickModal('${item.ip||''}')">✎</span></span> ` : ''}
-              ${item.device||'Dispositivo'} · ${item.os||'—'}
+            <span class="device-name" style="display:flex;flex-direction:column;gap:3px">
+              ${nick ? `<span class="nick-tag" style="width:fit-content">${nick} <span class="del" onclick="event.stopPropagation();openNickModal('${item.ip||''}')">✎</span></span>` : ''}
+              <span>${item.device||'Dispositivo'} · ${item.os||'—'}</span>
             </span>
             <span class="device-time">${item.ts||'—'}</span>
           </div>
