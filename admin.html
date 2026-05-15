@@ -522,6 +522,9 @@
         if(d.preview.desc){  descEl.textContent=d.preview.desc;   descEl.style.display='block';  }
         if(d.preview.domain){ domEl.textContent=d.preview.domain; domEl.style.display='block';   }
         if(d.preview.image && d.preview.image.startsWith('http')){ imgEl.src=d.preview.image; imgEl.style.display='block'; imgEl.onerror=()=>{ imgEl.style.display='none'; }; }
+      } else if(d.url) {
+        // Sem preview salvo ainda — busca automaticamente
+        fetchPreview(d.url);
       }
       if(d.visible!==undefined) document.getElementById('f-visible').checked=d.visible;
       if(d.publishedAt) startTimer(d.publishedAt);
@@ -619,9 +622,7 @@
     domEl.style.display   = 'block';
   }
 
-  // Auto-preview se já tiver URL ao carregar
-  const existingUrl = document.getElementById('f-url').value.trim();
-  if(existingUrl) fetchPreview(existingUrl);
+  // Preview é carregado automaticamente pelo Firebase onValue acima
 </script>
 </body>
 </html>
