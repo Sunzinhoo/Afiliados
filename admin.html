@@ -558,52 +558,50 @@
     domEl.style.display   = 'none';
     imgEl.style.display   = 'none';
 
-    // Tenta jsonlink primeiro (resolve encurtadores como meli.la)
-    try {
-      const jRes  = await fetch('https://jsonlink.io/api/extract?url=' + encodeURIComponent(url), { signal: AbortSignal.timeout(6000) });
-      const jData = await jRes.json();
-      if(jData && (jData.title || jData.description)){
+    const apis = [
+      // API 1: microlink (suporta meli.la e resolve redirects)
+      async () => {
+        const r = await fetch('https://api.microlink.io/?url=' + encodeURIComponent(url) + '&screenshot=false', { signal: AbortSignal.timeout(8000) });
+        const d = await r.json();
+        if(d.status !== 'success') throw new Error('fail');
+        const m = d.data;
+        return {
+          title:  m.title  || '',
+          desc:   m.description || '',
+          image:  m.image?.url || m.logo?.url || '',
+          domain: m.publisher || (new URL(m.url || url).hostname.replace('www.','')),
+        };
+      },
+      // API 2: jsonlink
+      async () => {
+        const r = await fetch('https://jsonlink.io/api/extract?url=' + encodeURIComponent(url), { signal: AbortSignal.timeout(6000) });
+        const d = await r.json();
+        if(!d.title && !d.description) throw new Error('fail');
+        return {
+          title:  d.title || '',
+          desc:   d.description || '',
+          image:  (d.images && d.images[0]) || '',
+          domain: d.domain || '',
+        };
+      },
+    ];
+
+    for(const api of apis){
+      try {
+        const result = await api();
         loading.style.display = 'none';
-        if(jData.title){ titleEl.textContent = jData.title; titleEl.style.display = 'block'; }
-        if(jData.description){ const d = jData.description; descEl.textContent = d.length > 120 ? d.slice(0,120)+'…' : d; descEl.style.display = 'block'; }
-        try { domEl.textContent = jData.domain || new URL(url).hostname.replace('www.',''); } catch(e){ domEl.textContent = url; }
-        domEl.style.display = 'block';
-        if(jData.images && jData.images[0]){ imgEl.src = jData.images[0]; imgEl.style.display = 'block'; imgEl.onerror = ()=>{ imgEl.style.display='none'; }; }
-        return;
-      }
-    } catch(e){}
-
-    // Fallback: allorigins proxy
-    try {
-      const proxyRes  = await fetch('https://api.allorigins.win/get?url=' + encodeURIComponent(url), { signal: AbortSignal.timeout(8000) });
-      const proxyData = await proxyRes.json();
-      const rawHtml   = proxyData.contents || '';
-      const parsedDoc = new DOMParser().parseFromString(rawHtml, 'text/html');
-
-      const getMeta = (selectors) => {
-        for(const s of selectors){
-          const el = parsedDoc.querySelector(s);
-          if(el){ const v = el.getAttribute('content') || el.textContent; if(v && v.trim()) return v.trim(); }
-        }
-        return '';
-      };
-
-      const title  = getMeta(['meta[property="og:title"]','meta[name="twitter:title"]','title']);
-      const desc   = getMeta(['meta[property="og:description"]','meta[name="description"]']);
-      const image  = getMeta(['meta[property="og:image"]','meta[name="twitter:image"]']);
-      const domain = (() => { try { return new URL(proxyData.status?.url || url).hostname.replace('www.',''); } catch(e){ return url; } })();
-
-      loading.style.display = 'none';
-      if(title){ titleEl.textContent = title; titleEl.style.display = 'block'; }
-      if(desc){  const d = desc; descEl.textContent = d.length>120 ? d.slice(0,120)+'…' : d; descEl.style.display = 'block'; }
-      domEl.textContent = domain; domEl.style.display = 'block';
-      if(image){ imgEl.src = image; imgEl.style.display = 'block'; imgEl.onerror = ()=>{ imgEl.style.display='none'; }; }
-
-    } catch(e) {
-      loading.style.display = 'none';
-      domEl.textContent     = '⚠️ Preview indisponível para este link';
-      domEl.style.display   = 'block';
+        if(result.title){ titleEl.textContent = result.title; titleEl.style.display = 'block'; }
+        if(result.desc){ const d = result.desc; descEl.textContent = d.length>130 ? d.slice(0,130)+'…' : d; descEl.style.display = 'block'; }
+        if(result.domain){ domEl.textContent = result.domain; domEl.style.display = 'block'; }
+        if(result.image){ imgEl.src = result.image; imgEl.style.display = 'block'; imgEl.onerror = ()=>{ imgEl.style.display='none'; }; }
+        return; // sucesso
+      } catch(e){ continue; }
     }
+
+    // Todas as APIs falharam
+    loading.style.display = 'none';
+    domEl.textContent     = '⚠️ Preview indisponível para este link';
+    domEl.style.display   = 'block';
   }
 
   // Auto-preview se já tiver URL ao carregar
