@@ -244,7 +244,20 @@
     <!-- URL -->
     <div class="url-row">
       <div class="field-label"><label for="f-url">URL de destino</label></div>
-      <input type="url" id="f-url" placeholder="https://meli.la/...">
+      <input type="url" id="f-url" placeholder="https://meli.la/..." oninput="debouncePreview()">
+    </div>
+
+    <!-- Link Preview Card -->
+    <div id="link-preview" style="display:none;margin-bottom:1rem;background:var(--surface2);border:1px solid var(--border);border-radius:10px;overflow:hidden">
+      <div style="display:flex;gap:0;align-items:stretch">
+        <img id="preview-img" src="" alt="" style="width:90px;min-height:90px;object-fit:cover;flex-shrink:0;display:none">
+        <div style="padding:.875rem;flex:1;min-width:0">
+          <div id="preview-loading" style="display:none;font-family:var(--mono);font-size:.65rem;color:var(--muted)">⏳ Carregando preview…</div>
+          <div id="preview-title" style="font-family:var(--sans);font-size:.82rem;font-weight:700;color:var(--text);margin-bottom:4px;line-height:1.3;display:none"></div>
+          <div id="preview-desc" style="font-family:var(--mono);font-size:.65rem;color:var(--muted);line-height:1.4;margin-bottom:4px;display:none"></div>
+          <div id="preview-domain" style="font-family:var(--mono);font-size:.6rem;color:var(--accent2);display:none"></div>
+        </div>
+      </div>
     </div>
 
     <!-- Timer -->
@@ -515,6 +528,110 @@
   };
 
   updateNotifBanner();
+
+  // ── Link Preview ──────────────────────────────────────────
+  let previewTimer = null;
+
+  window.debouncePreview = function(){
+    clearTimeout(previewTimer);
+    const url = document.getElementById('f-url').value.trim();
+    if(!url || !url.startsWith('http')){ hidePreview(); return; }
+    previewTimer = setTimeout(() => fetchPreview(url), 800);
+  };
+
+  function hidePreview(){
+    document.getElementById('link-preview').style.display = 'none';
+  }
+
+  async function fetchPreview(url){
+    const card    = document.getElementById('link-preview');
+    const loading = document.getElementById('preview-loading');
+    const imgEl   = document.getElementById('preview-img');
+    const titleEl = document.getElementById('preview-title');
+    const descEl  = document.getElementById('preview-desc');
+    const domEl   = document.getElementById('preview-domain');
+
+    // Show loading
+    card.style.display = 'block';
+    loading.style.display = 'block';
+    titleEl.style.display = 'none';
+    descEl.style.display  = 'none';
+    domEl.style.display   = 'none';
+    imgEl.style.display   = 'none';
+
+    try {
+      // Use allorigins proxy to fetch page HTML
+      const proxy = 'https://api.allorigins.win/get?url=' + encodeURIComponent(url);
+      const res   = await fetch(proxy, { signal: AbortSignal.timeout(8000) });
+      const data  = await res.json();
+      const html  = data.contents || '';
+
+      // Parse meta tags
+      const doc = new DOMParser().parseFromString(html, 'text/html');
+
+      const getMeta = (selectors) => {
+        for(const s of selectors){
+          const el = doc.querySelector(s);
+          if(el){ const v = el.getAttribute('content') || el.getAttribute('href') || el.textContent; if(v && v.trim()) return v.trim(); }
+        }
+        return '';
+      };
+
+      const title = getMeta([
+        'meta[property="og:title"]',
+        'meta[name="twitter:title"]',
+        'title',
+      ]);
+
+      const desc = getMeta([
+        'meta[property="og:description"]',
+        'meta[name="twitter:description"]',
+        'meta[name="description"]',
+      ]);
+
+      let image = getMeta([
+        'meta[property="og:image"]',
+        'meta[name="twitter:image"]',
+        'meta[name="twitter:image:src"]',
+      ]);
+
+      // Make relative image URLs absolute
+      if(image && image.startsWith('/')){
+        const u = new URL(url);
+        image = u.origin + image;
+      }
+
+      const domain = (() => { try { return new URL(url).hostname.replace('www.',''); } catch(e){ return url; } })();
+
+      loading.style.display = 'none';
+
+      if(title){
+        titleEl.textContent = title;
+        titleEl.style.display = 'block';
+      }
+      if(desc){
+        descEl.textContent = desc.length > 120 ? desc.slice(0,120)+'…' : desc;
+        descEl.style.display = 'block';
+      }
+      domEl.textContent = domain;
+      domEl.style.display = 'block';
+
+      if(image){
+        imgEl.src = image;
+        imgEl.style.display = 'block';
+        imgEl.onerror = () => { imgEl.style.display = 'none'; };
+      }
+
+    } catch(e) {
+      loading.style.display = 'none';
+      domEl.textContent = 'Não foi possível carregar preview';
+      domEl.style.display = 'block';
+    }
+  }
+
+  // Auto-preview se já tiver URL ao carregar
+  const existingUrl = document.getElementById('f-url').value.trim();
+  if(existingUrl) fetchPreview(existingUrl);
 </script>
 </body>
 </html>
