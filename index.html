@@ -9,86 +9,83 @@
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-192.png">
 <link rel="icon" type="image/x-icon" href="favicon.ico">
-<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
 <style>
-  :root{--bg:#0d0d14;--surface:#14141f;--border:#1f1f30;--accent:#7c6af7;--accent-glow:rgba(124,106,247,.3);--text:#ededf5;--muted:#5c5c80;--serif:'DM Serif Display',serif;--sans:'DM Sans',sans-serif}
   *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-  body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:2rem}
-  body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellipse 70% 60% at 50% 30%,rgba(124,106,247,.12) 0%,transparent 70%),radial-gradient(ellipse 40% 30% at 80% 70%,rgba(255,100,150,.05) 0%,transparent 60%);pointer-events:none}
-  .wrapper{position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;text-align:center;max-width:480px;width:100%;animation:fadeUp .8s cubic-bezier(.16,1,.3,1) both}
-  @keyframes fadeUp{from{opacity:0;transform:translateY(30px)}to{opacity:1;transform:translateY(0)}}
-  .orb{width:80px;height:80px;border-radius:50%;background:conic-gradient(from 0deg,var(--accent),#ff6496,var(--accent));box-shadow:0 0 40px var(--accent-glow),0 0 80px rgba(124,106,247,.15);margin-bottom:2rem;animation:spin 8s linear infinite;position:relative}
-  .orb::after{content:'🔗';position:absolute;inset:4px;background:var(--bg);border-radius:50%;display:grid;place-items:center;font-size:1.8rem;animation:spin-reverse 8s linear infinite}
-  @keyframes spin{to{transform:rotate(360deg)}}
-  @keyframes spin-reverse{to{transform:rotate(-360deg)}}
-  h1{font-family:var(--serif);font-size:2.8rem;line-height:1.1;letter-spacing:-.02em;margin-bottom:.75rem}
-  h1 em{font-style:italic;color:var(--accent)}
-  .tagline{color:var(--muted);font-size:.95rem;font-weight:300;line-height:1.6;margin-bottom:3rem;max-width:320px}
-  #install-btn{display:none;align-items:center;gap:8px;padding:.65rem 1.25rem;background:transparent;border:1px solid var(--border);border-radius:50px;color:var(--muted);font-family:var(--sans);font-size:.78rem;cursor:pointer;transition:all .2s;margin-bottom:1rem}
-  #install-btn:hover{border-color:var(--accent);color:var(--accent);background:rgba(124,106,247,.06)}
-  #install-btn svg{width:14px;height:14px;fill:currentColor}
-  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
-  .status-msg{font-size:.8rem;color:var(--muted);font-family:monospace;margin-top:1rem;display:flex;align-items:center;gap:8px}
-  .status-msg::before{content:'';width:6px;height:6px;border-radius:50%;background:#00ff88;animation:pulse 2s infinite;flex-shrink:0}
-  .footer-note{font-size:.7rem;color:var(--muted);font-family:monospace;margin-top:2rem}
+  html,body{width:100%;height:100%;background:#FFE600}
 </style>
 </head>
 <body>
-<div class="wrapper">
-  <div class="orb"></div>
-  <h1>Bem-vindo ao<br><em>nosso espaço</em></h1>
-  <p class="tagline">O link abaixo é atualizado em tempo real pelo administrador.</p>
-  <button id="install-btn" onclick="installPWA()">
-    <svg viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
-    Instalar na área de trabalho
-  </button>
-  <p class="status-msg" id="status-msg">Aguardando link do admin…</p>
-  <p class="footer-note">// sincronizado via Firebase em tempo real</p>
-</div>
-
 <script type="module">
   import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
-  import { getDatabase, ref, onValue } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js';
+  import { getDatabase, ref, onValue, push, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js';
 
-  const firebaseConfig = {
+  const app = initializeApp({
     apiKey: "AIzaSyAR6T8J5EZE5TT2a2OAGs2YDvmKu-XzXEQ",
     databaseURL: "https://afiliados-5ae3a-default-rtdb.firebaseio.com",
-  };
-
-  const app = initializeApp(firebaseConfig);
-  const db = getDatabase(app);
-  const linkRef = ref(db, 'link');
-
-  onValue(linkRef, (snap) => {
-    applyConfig(snap.val());
   });
+  const db = getDatabase(app);
 
-  let redirected = false;
+  // ── Registra acesso ──────────────────────────────────────
+  function parseUA(ua){
+    let os = 'Desconhecido', browser = 'Desconhecido', device = '💻 Desktop';
 
-  function applyConfig(d){
-    const msg = document.getElementById('status-msg');
+    if(/android/i.test(ua))       { os = 'Android';  device = '📱 Mobile'; }
+    else if(/iphone|ipad/i.test(ua)){ os = 'iOS';    device = /ipad/i.test(ua) ? '📱 Tablet' : '📱 Mobile'; }
+    else if(/windows/i.test(ua))  { os = 'Windows'; }
+    else if(/mac os/i.test(ua))   { os = 'macOS'; }
+    else if(/linux/i.test(ua))    { os = 'Linux'; }
 
-    if(!d || d.visible === false){
-      msg.textContent = 'Link indisponível no momento';
-      return;
-    }
+    if(/edg\//i.test(ua))         browser = 'Edge';
+    else if(/opr\//i.test(ua))    browser = 'Opera';
+    else if(/chrome/i.test(ua))   browser = 'Chrome';
+    else if(/safari/i.test(ua))   browser = 'Safari';
+    else if(/firefox/i.test(ua))  browser = 'Firefox';
 
-    if(d.url && !redirected){
-      redirected = true;
-      // Redireciona instantaneamente
-      window.location.replace(d.url);
-    }
+    return { os, browser, device };
   }
 
-  // PWA
+  async function registerAccess(){
+    const ua = navigator.userAgent;
+    const { os, browser, device } = parseUA(ua);
+    const lang = navigator.language || '—';
+    const screen = `${window.screen.width}x${window.screen.height}`;
+
+    // Tenta pegar país via API gratuita
+    let country = '—', city = '—', ip = '—';
+    try {
+      const r = await fetch('https://ipapi.co/json/', { signal: AbortSignal.timeout(3000) });
+      const d = await r.json();
+      country = (d.country_name || '—');
+      city    = (d.city || '—');
+      ip      = (d.ip || '—');
+    } catch(e){}
+
+    await push(ref(db, 'acessos'), {
+      device, os, browser, lang, screen,
+      country, city, ip,
+      ts: new Date().toLocaleString('pt-BR'),
+      tsUnix: Date.now(),
+    });
+  }
+
+  registerAccess();
+
+  // ── Redireciona ──────────────────────────────────────────
+  let redirected = false;
+  onValue(ref(db, 'link'), (snap) => {
+    const d = snap.val();
+    if(d && d.visible !== false && d.url && !redirected){
+      redirected = true;
+      window.location.replace(d.url);
+    }
+  });
+
   if('serviceWorker' in navigator){
     navigator.serviceWorker.register('./sw.js').catch(()=>{});
   }
-
   let deferredPrompt = null;
-  window.addEventListener('beforeinstallprompt',(e)=>{ e.preventDefault(); deferredPrompt=e; document.getElementById('install-btn').style.display='flex'; });
-  window.installPWA = function(){ if(!deferredPrompt) return; deferredPrompt.prompt(); deferredPrompt.userChoice.then(()=>{ deferredPrompt=null; document.getElementById('install-btn').style.display='none'; }); };
-  window.addEventListener('appinstalled',()=>{ document.getElementById('install-btn').style.display='none'; });
+  window.addEventListener('beforeinstallprompt',(e)=>{ e.preventDefault(); deferredPrompt=e; });
+  window.addEventListener('appinstalled',()=>{ deferredPrompt=null; });
 </script>
 </body>
 </html>
