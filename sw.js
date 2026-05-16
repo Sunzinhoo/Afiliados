@@ -1,4 +1,4 @@
-const CACHE = 'meusite-v3';
+const CACHE = 'meusite-v4';
 const ASSETS = ['./', './index.html', './manifest.json', './icon-192.png', './icon-512.png'];
 const DB_URL = 'https://afiliados-5ae3a-default-rtdb.firebaseio.com';
 
@@ -59,7 +59,7 @@ async function checkNewAccess(){
       const item  = data2 ? Object.values(data2)[0] : {};
 
       await self.registration.showNotification('🔔 Novo acesso!', {
-        body: `${item.device||'Dispositivo'} · ${item.os||''}\n📍 ${item.city||''} ${item.country||''}\n${item.ip||''}`,
+        body: `${item.device||'Dispositivo'} · ${item.os||''}\n📍 ${item.city||''} ${item.country||''}`,
         icon: './icon-192.png',
         badge: './icon-192.png',
         tag: 'acesso-' + Date.now(),
