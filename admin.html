@@ -758,6 +758,29 @@
   }
 
   // Preview é carregado automaticamente pelo Firebase onValue acima
+
+  // ── Service Worker ────────────────────────────────────────
+  async function initSW(){
+    if(!('serviceWorker' in navigator)) return;
+    try {
+      const reg = await navigator.serviceWorker.register('./sw.js');
+      await navigator.serviceWorker.ready;
+      const snap = await new Promise(res => onValue(acessosRef, res, { onlyOnce: true }));
+      const currentCount = snap.val() ? Object.keys(snap.val()).length : 0;
+      const sw = reg.active;
+      if(sw){
+        sw.postMessage({ type: 'INIT_FIREBASE', lastCount: currentCount });
+      }
+      if('periodicSync' in reg && Notification.permission === 'granted'){
+        try { await reg.periodicSync.register('check-acessos', { minInterval: 30000 }); } catch(e){}
+      }
+      setInterval(() => {
+        if(reg.active) reg.active.postMessage({ type: 'CHECK_NOW' });
+      }, 15000);
+    } catch(e){ console.warn('SW error:', e); }
+  }
+
+  initSW();
 </script>
 </body>
 </html>
