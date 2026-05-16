@@ -495,7 +495,8 @@
   }
 
   function updateNotifLog(publishedAt){
-    const body    = document.getElementById('notif-log-body');
+    const body = document.getElementById('notif-log-body');
+    if(!body) return; // elemento removido, ignora
     const sentKey = 'notif_sent_'+publishedAt;
     const sent    = JSON.parse(localStorage.getItem(sentKey)||'{}');
     const expiresAt = publishedAt + SIX_DAYS_MS;
