@@ -244,12 +244,17 @@
     </div>
 
     <!-- Notificações -->
-    <div class="notif-banner" id="notif-banner">
-      <div class="notif-banner-text">
-        🔔 Ativar notificações de expiração
-        <span>Você será avisado em 3 dias, 1 dia, 6 horas e ao expirar</span>
+    <div id="notif-banner" style="margin-bottom:1rem;display:flex;align-items:center;gap:8px">
+      <div id="notif-pill-inactive" style="display:flex;align-items:center;gap:8px">
+        <button onclick="requestNotifPermission()" style="display:flex;align-items:center;gap:6px;background:rgba(255,230,0,.08);border:1px solid rgba(255,230,0,.25);border-radius:50px;color:#ffe600;font-family:var(--mono);font-size:.62rem;padding:4px 12px;cursor:pointer;transition:all .2s" onmouseover="this.style.background='rgba(255,230,0,.15)'" onmouseout="this.style.background='rgba(255,230,0,.08)'">
+          <span>🔔</span> Ativar notificações
+        </button>
       </div>
-      <button class="notif-btn" id="notif-btn" onclick="requestNotifPermission()">Ativar</button>
+      <div id="notif-pill-active" style="display:none;align-items:center;gap:5px;background:rgba(0,255,136,.06);border:1px solid rgba(0,255,136,.2);border-radius:50px;padding:3px 10px">
+        <span style="width:5px;height:5px;border-radius:50%;background:#00ff88;display:inline-block;animation:blink 2s infinite"></span>
+        <span style="font-family:var(--mono);font-size:.6rem;color:#00ff88">notificações ativas</span>
+      </div>
+      <div id="notif-pill-denied" style="display:none;font-family:var(--mono);font-size:.6rem;color:var(--muted)">🔕 notificações bloqueadas</div>
     </div>
 
 
@@ -280,23 +285,14 @@
         <img src="data:image/png;base64,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" style="width:36px;height:36px;border-radius:6px;display:block">
       </a>
       <a href="https://docs.google.com/document/d/1nrSFvXWd33NMayIjBtrI4Q2zgY0pNsdvljsSOzRU5vQ/edit?usp=sharing" target="_blank" rel="noopener"
-         style="display:inline-flex;align-items:center;justify-content:center;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:.75rem;text-decoration:none;transition:all .2s"
+         style="display:inline-flex;align-items:center;justify-content:center;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:.75rem;text-decoration:none;transition:all .2s;margin-left:auto"
          onmouseover="this.style.borderColor='#4285F4';this.style.background='rgba(66,133,244,0.06)'"
          onmouseout="this.style.borderColor='var(--border)';this.style.background='var(--surface2)'">
         <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADAAAAAwCAYAAABXAvmHAAABCGlDQ1BJQ0MgUHJvZmlsZQAAeJxjYGA8wQAELAYMDLl5JUVB7k4KEZFRCuwPGBiBEAwSk4sLGHADoKpv1yBqL+viUYcLcKakFicD6Q9ArFIEtBxopAiQLZIOYWuA2EkQtg2IXV5SUAJkB4DYRSFBzkB2CpCtkY7ETkJiJxcUgdT3ANk2uTmlyQh3M/Ck5oUGA2kOIJZhKGYIYnBncAL5H6IkfxEDg8VXBgbmCQixpJkMDNtbGRgkbiHEVBYwMPC3MDBsO48QQ4RJQWJRIliIBYiZ0tIYGD4tZ2DgjWRgEL7AwMAVDQsIHG5TALvNnSEfCNMZchhSgSKeDHkMyQx6QJYRgwGDIYMZAKbWPz9HbOBQAAAD+ElEQVR4nO2aQWhcVRSGv3Pfm0kyU1o1kwSjqQUXKrVaddGFaInEFLoT1IWiQnDpzo1uTLIriFtXIijWhQUXFXURtJZCiwtRouhCKIa2NlQjYmvqm3n3Hhczwdh5L5l3ZpqJ2B/eas599/z3/Ofce95cIQuz6piXUHnh6EN+4pG30krtvoATRSTTvlNoUMqDGi8v/VY+/e706pnXvubgiZiTk6n1la7d+VnHHFp94s3RxsTk8frwxH6Po2vnAUREfEoo31Kr3334o+rjr9/LycmUgydi6yvbCTDnENF04sDTfuTWcV1NGiAZdjYo4qhfCWll9LbkjqnPqlNH9nVDItexUC7frgFF6H7l22Z1juQPnw7VRpM90wvVqTfMJPJXVlOF6+D8GsRF1C/7dHBkLNkzuWCNxAbS6Jlq8iHROhLTJhJb4OVG0GsiUVxOfSbQQhdy2h4EICMSnZHYPgTAJKf+EVDNfsRFJJd9OlgbS3ZPLlQfbUVidjbTV/MO2BVEIIogcqAZv7soIl31fsfYWHLXoYXK8Mih1bmZRcAxPx/Wm24xAYHgCbt2wc6dmxlHSqj7HeNjjZ94HpGXmdUI+kqgBRFwnajXORQlHkzyLPpDAJp639wIQNCQeyLYXlXIAHMEIte7g5ICPmxqlgkzAX8VME7aBgcM2IaaCIgGnnlQGa86UuyR0JYDF/8MHP1OUEPbYSKgQXn14Zi9wyXL8DZ8v9LgvcUUouJjjRIS6l7J3oWKo/kuWxxtEnLCS582uGkgxZunbtKPgN8TRVxsWg6bhEQ4vVSC/PJcDE7BqEZzFZIy9EpC0OG+lgGbhFBKKCLyD4eiwVgne1WlgaAGMdok5JX3nxL2j8bUFZxRSUGhLPDNpZQnjylEW0QAYO9IxJ03G+peBhqqgO3jnIGAgChnLjS4kij10GUEHHz7a9qSk1A0rwwEFHERM8c9qC8+PAvSbMTUUBRsOQBEcdxKubVs7GzyoM1HZH3lEZPz0M1h7i9dd5grMHmpOeu/y6a9HNsIqHL4HqU2JHjtrPgpQizKqfNwdsUhbSRssCVx8Bx5LGJfrUyx1VNmPq5zdhmiEqQ9IPB/7MgUnOOVzwO1ocQkIUrge3QKseWACJ/8IK0kLrIJSE4S22HviQcw/enktXfOQzdltHf9TFf4zyfxDQL9xg0C/cYGBHr12a0XyG928glIXLy7uD5QJL9lyiXg6vXz4ro4qPcCiopDXPBLeSZZdyUCqhKf+/KD6JeLP0tloAS69XrSoFIZKEWXLizHP37xIaoCc21+ZIdm7brNc8ceSHcfeNsPDd8fXNSbGysdQFB16jW+urIYnTv14uo7z3615tO1tn8DhLKpOksdNNYAAAAASUVORK5CYII=" style="width:36px;height:36px;display:block">
       </a>
     </div>
 
-        <div class="notif-log">
-      <div class="notif-log-header">
-        <span class="notif-log-title">🔔 Alertas programados</span>
-      </div>
-      <div class="notif-log-body" id="notif-log-body">
-        <span class="empty-log">Nenhum link publicado ainda</span>
-      </div>
-    </div>
-
-    <!-- URL -->
+        <!-- URL -->
     <div class="url-row">
       <div class="field-label"><label for="f-url">URL de destino</label></div>
       <input type="url" id="f-url" placeholder="https://meli.la/..." oninput="debouncePreview()">
@@ -336,17 +332,12 @@
     <button class="btn btn-publish" id="btn-publish" onclick="publishLink()" disabled>Publicar Link</button>
 
     <!-- Estado Firebase -->
-    <div class="preview">
-      <div class="preview-header">
-        <span class="preview-title">Estado no Firebase</span>
-        <span class="live-badge">live</span>
-      </div>
-      <div class="preview-body">
-        <div class="preview-row"><span class="pk">url</span><span class="pv empty" id="pv-url">—</span></div>
-        <div class="preview-row"><span class="pk">visível</span><span class="pv empty" id="pv-visible">—</span></div>
-        <div class="preview-row"><span class="pk">publicado em</span><span class="pv empty" id="pv-time">—</span></div>
-        <div class="preview-row"><span class="pk">expira em</span><span class="pv empty" id="pv-expires">—</span></div>
-      </div>
+    <div style="display:flex;align-items:center;gap:.75rem;flex-wrap:wrap;margin-bottom:1.5rem;padding:.65rem .875rem;background:var(--surface2);border:1px solid var(--border);border-radius:8px">
+      <span style="display:flex;align-items:center;gap:5px;font-family:var(--mono);font-size:.6rem;color:var(--green)"><span style="width:5px;height:5px;border-radius:50%;background:var(--green);display:inline-block;animation:blink 1.5s infinite"></span>live</span>
+      <span class="pv empty" id="pv-url" style="font-family:var(--mono);font-size:.68rem;color:var(--accent2);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">—</span>
+      <span class="pv empty" id="pv-visible" style="font-family:var(--mono);font-size:.62rem;color:var(--muted)">—</span>
+      <span class="pv empty" id="pv-expires" style="font-family:var(--mono);font-size:.62rem;color:var(--yellow)">—</span>
+      <span id="pv-time" style="display:none"></span>
     </div>
 
     <!-- Monitoramento de Dispositivos -->
@@ -466,11 +457,10 @@
   ];
 
   function updateNotifBanner(){
-    const banner = document.getElementById('notif-banner');
-    const btn    = document.getElementById('notif-btn');
-    const perm   = Notification.permission;
-    if(perm==='granted'){ banner.classList.add('granted'); btn.textContent='✓ Ativo'; btn.classList.add('ok'); }
-    else if(perm==='denied'){ banner.classList.add('denied'); btn.textContent='Bloqueado'; btn.classList.add('blocked'); document.querySelector('.notif-banner-text span').textContent='Desbloqueie nas configurações do navegador'; }
+    const perm = Notification.permission;
+    document.getElementById('notif-pill-inactive').style.display = perm==='default' ? 'flex' : 'none';
+    document.getElementById('notif-pill-active').style.display   = perm==='granted'  ? 'flex' : 'none';
+    document.getElementById('notif-pill-denied').style.display   = perm==='denied'   ? 'flex' : 'none';
   }
 
   window.requestNotifPermission = async function(){
@@ -551,8 +541,10 @@
   }
 
   // ── Monitoramento ─────────────────────────────────────────
-  let knownIds = new Set();
+  // Persiste IDs conhecidos no localStorage para não notificar acessos antigos ao recarregar
+  let knownIds = new Set(JSON.parse(localStorage.getItem('known_access_ids') || '[]'));
   let lastDevices = [];
+  let firstLoad = true;
 
   function renderDevices(items){
     const list = document.getElementById('device-list');
@@ -589,20 +581,33 @@
         ${isNew ? '<div class="new-dot"></div>' : ''}
       `;
       list.appendChild(el);
-      if(isNew && knownIds.size > 1 && Notification.permission==='granted'){
-        new Notification('Novo acesso!',{ body:`${icon} ${item.device||''} · ${item.os||''} · ${item.country||''}`, icon:'icon-192.png', tag:'access-'+item.id });
+      // Notifica sempre que um acesso novo chegar em tempo real (não no carregamento inicial)
+      if(!firstLoad && Notification.permission==='granted'){
+        const nick2 = ipKey && nickMap[ipKey] ? nickMap[ipKey] : '';
+        new Notification('🔔 Novo acesso!',{
+          body: (nick2 ? nick2 + ' · ' : '') + `${item.device||''} · ${item.os||''}
+📍 ${item.city||''} ${item.country||''} · ${item.ip||''}`,
+          icon: 'icon-192.png',
+          tag:  'access-'+item.id,
+          requireInteraction: false,
+        });
       }
     });
+    // Salva IDs conhecidos
+    localStorage.setItem('known_access_ids', JSON.stringify([...knownIds]));
   }
 
   onValue(acessosRef, (snap)=>{
     const data = snap.val();
-    if(!data){ renderDevices([]); updateStats([]); return; }
+    if(!data){ renderDevices([]); updateStats([]); firstLoad=false; return; }
     const items = Object.entries(data)
       .map(([id,v])=>({id,...v}))
       .sort((a,b)=>(b.tsUnix||0)-(a.tsUnix||0));
     renderDevices(items);
-  });
+    // Marca fim do primeiro carregamento após pequeno delay
+    // para que acessos futuros (em tempo real) disparem notificação
+    setTimeout(() => { firstLoad = false; }, 1500);
+  }, { onlyOnce: false });
 
   // Re-render when nicknames change
   onValue(nicksRef, (snap)=>{
