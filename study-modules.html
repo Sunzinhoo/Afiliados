@@ -1,0 +1,1710 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Módulos de Estudo</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<!-- Firebase -->
+<script type="module">
+  import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+  import { getDatabase, ref, set, onValue } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js';
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyAR6T8J5EZE5TT2a2OAGs2YDvmKu-XzXEQ",
+    authDomain: "afiliados-5ae3a.firebaseapp.com",
+    databaseURL: "https://afiliados-5ae3a-default-rtdb.firebaseio.com",
+    projectId: "afiliados-5ae3a",
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getDatabase(app);
+  const dbRef = ref(db, 'medstudy/programada3');
+
+  // ── LOAD from Realtime Database ──
+  onValue(dbRef, (snapshot) => {
+    const data = snapshot.val();
+    if (!data) return;
+
+    // Restore text edits
+    if (data.texts) {
+      Object.entries(data.texts).forEach(([id, val]) => {
+        const el = document.querySelector(`[data-fid="${id}"]`);
+        if (el) el.textContent = val;
+      });
+    }
+
+    // Restore added items (only once)
+    if (data.items && !window._itemsLoaded) {
+      window._itemsLoaded = true;
+      data.items.forEach(item => {
+        const list = document.querySelector(`[data-list="${item.listId}"]`);
+        if (list) window._insertItem(list, item);
+      });
+    }
+  }, { onlyOnce: false });
+
+  // ── SAVE to Realtime Database ──
+  window._saveToFirebase = async () => {
+    const texts = {};
+    document.querySelectorAll('[data-fid]').forEach(el => {
+      texts[el.dataset.fid] = el.textContent.trim();
+    });
+
+    const items = [];
+    document.querySelectorAll('.video-item[data-added]').forEach(li => {
+      items.push({
+        listId: li.dataset.listId,
+        fileId: li.dataset.fileId,
+        title: li.querySelector('.video-title') ? li.querySelector('.video-title').textContent.trim() : '',
+        type: li.dataset.type,
+      });
+    });
+
+    await set(dbRef, { texts, items });
+  };
+
+  // ── INSERT ITEM helper (used by onValue loader) ──
+  window._insertItem = (list, item) => {
+    const { fileId, title, type, listId } = item;
+    const isPdf = type === 'pdf';
+    const badge = isPdf ? 'PDF' : 'VÍDEO';
+    const fid = 'loaded-' + Date.now() + '-' + Math.random().toString(36).slice(2);
+
+    const li = document.createElement('li');
+    li.className = 'video-item';
+    li.dataset.added = '1';
+    li.dataset.fileId = fileId;
+    li.dataset.listId = listId;
+    li.dataset.type = type;
+    li.setAttribute('onclick', `togglePlayer(this, '${fileId}')`);
+    li.innerHTML = `
+      <div class="video-play"><svg viewBox="0 0 12 12"><path d="M3 2l7 4-7 4V2z"/></svg></div>
+      <div class="video-info">
+        <div class="video-title" data-fid="${fid}">${title}</div>
+        <div class="video-duration">▶ Clique para ${isPdf ? 'abrir' : 'assistir'}</div>
+      </div>
+      <span class="video-badge">${badge}</span>
+      <button class="done-btn" onclick="toggleDone(event,this)">✓</button>
+      <button class="edit-remove-btn" onclick="removeItem(event,this)" title="Remover">🗑</button>
+    `;
+
+    const playerDiv = document.createElement('div');
+    playerDiv.className = 'video-player-wrap';
+    playerDiv.id = 'player-' + fileId;
+    if (isPdf) playerDiv.style.cssText = 'aspect-ratio:4/3;';
+    playerDiv.innerHTML = `
+      <button class="player-close" onclick="closePlayer(event,'${fileId}')">✕</button>
+      ${isPdf ? `<button class="player-fullscreen" onclick="openFullscreen(event,'${fileId}')">⛶</button>` : ''}
+      <iframe src="" allowfullscreen ${isPdf ? 'style="aspect-ratio:4/3;min-height:400px;"' : ''}></iframe>
+    `;
+
+    const addRow = list.querySelector('.edit-add-row');
+    if (addRow) {
+      list.insertBefore(li, addRow);
+      list.insertBefore(playerDiv, addRow);
+    } else {
+      list.appendChild(li);
+      list.appendChild(playerDiv);
+    }
+  };
+</script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #060a06;
+    --bg2: #0b110b;
+    --bg3: #0f170f;
+    --accent: #4ade4a;
+    --accent-dim: rgba(74, 222, 74, 0.15);
+    --accent-glow: rgba(74, 222, 74, 0.35);
+    --text: #e8f5e8;
+    --text-muted: #6b8f6b;
+    --border: rgba(74, 222, 74, 0.12);
+    --border-hover: rgba(74, 222, 74, 0.35);
+    --glass: rgba(11, 17, 11, 0.7);
+  }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ── NOISE TEXTURE OVERLAY ── */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 0;
+    opacity: 0.4;
+  }
+
+  /* ── AMBIENT GLOW ── */
+  .ambient {
+    position: fixed;
+    border-radius: 50%;
+    filter: blur(120px);
+    pointer-events: none;
+    z-index: 0;
+  }
+  .ambient-1 {
+    width: 600px; height: 400px;
+    background: rgba(74, 222, 74, 0.04);
+    top: -100px; left: -100px;
+  }
+  .ambient-2 {
+    width: 400px; height: 400px;
+    background: rgba(74, 222, 74, 0.03);
+    bottom: 200px; right: -100px;
+  }
+
+  /* ── HEADER ── */
+  header {
+    position: relative;
+    z-index: 10;
+    padding: 28px 40px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid var(--border);
+    backdrop-filter: blur(12px);
+    background: rgba(6, 10, 6, 0.8);
+    position: sticky;
+    top: 0;
+  }
+
+  .logo {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: 1.3rem;
+    letter-spacing: -0.02em;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .logo-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 12px var(--accent);
+    animation: pulse-dot 2s ease-in-out infinite;
+  }
+  @keyframes pulse-dot {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(0.8); }
+  }
+
+  .nav-pill {
+    display: flex;
+    gap: 4px;
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 50px;
+    padding: 4px;
+  }
+  .nav-pill a {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.8rem;
+    font-weight: 500;
+    color: var(--text-muted);
+    text-decoration: none;
+    padding: 6px 16px;
+    border-radius: 50px;
+    transition: all 0.2s;
+  }
+  .nav-pill a:hover, .nav-pill a.active {
+    background: var(--accent-dim);
+    color: var(--accent);
+  }
+
+  /* ── MAIN LAYOUT ── */
+  main {
+    position: relative;
+    z-index: 1;
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 60px 24px 100px;
+  }
+
+  /* ── PAGE TITLE ── */
+  .page-title {
+    margin-bottom: 48px;
+    animation: fadeUp 0.6s ease both;
+  }
+  .page-title .eyebrow {
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: var(--accent);
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .page-title .eyebrow::before {
+    content: '';
+    display: block;
+    width: 20px;
+    height: 1px;
+    background: var(--accent);
+  }
+  .page-title h1 {
+    font-family: 'Syne', sans-serif;
+    font-size: clamp(2rem, 5vw, 3.2rem);
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    line-height: 1.1;
+    color: var(--text);
+  }
+  .page-title h1 span {
+    color: var(--accent);
+  }
+  .page-title p {
+    margin-top: 14px;
+    color: var(--text-muted);
+    font-size: 0.95rem;
+    max-width: 480px;
+    line-height: 1.6;
+  }
+
+  /* ── BADGE CARD ── */
+  .badge-card {
+    background: var(--glass);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    backdrop-filter: blur(20px);
+    overflow: hidden;
+    animation: fadeUp 0.7s ease 0.15s both;
+    box-shadow: 0 0 60px rgba(74, 222, 74, 0.04), 0 24px 48px rgba(0,0,0,0.4);
+    transition: border-color 0.3s;
+  }
+  .badge-card:hover {
+    border-color: var(--border-hover);
+  }
+
+  /* ── BADGE HEADER ── */
+  .badge-header {
+    padding: 28px 32px;
+    background: linear-gradient(135deg, rgba(74,222,74,0.06) 0%, transparent 60%);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+
+  .badge-info {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .badge-icon {
+    width: 52px; height: 52px;
+    border-radius: 14px;
+    background: var(--accent-dim);
+    border: 1px solid rgba(74,222,74,0.25);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.4rem;
+    flex-shrink: 0;
+  }
+
+  .badge-text h2 {
+    font-family: 'Syne', sans-serif;
+    font-size: 1.25rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    color: var(--text);
+    line-height: 1.2;
+  }
+  .badge-text span {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    margin-top: 2px;
+    display: block;
+  }
+
+  .badge-chip {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .chip {
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    padding: 5px 12px;
+    border-radius: 50px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+  .chip-green {
+    background: rgba(74,222,74,0.12);
+    color: var(--accent);
+    border: 1px solid rgba(74,222,74,0.25);
+  }
+  .chip-count {
+    background: rgba(74,222,74,0.06);
+    color: var(--text-muted);
+    border: 1px solid var(--border);
+  }
+
+  /* ── ACCORDION LIST ── */
+  .accordion-list {
+    padding: 8px 0;
+  }
+
+  /* ── ACCORDION ITEM ── */
+  .accordion-item {
+    border-bottom: 1px solid var(--border);
+    animation: fadeUp 0.4s ease both;
+  }
+  .accordion-item:last-child { border-bottom: none; }
+
+  .accordion-item:nth-child(1) { animation-delay: 0.05s; }
+  .accordion-item:nth-child(2) { animation-delay: 0.10s; }
+  .accordion-item:nth-child(3) { animation-delay: 0.15s; }
+  .accordion-item:nth-child(4) { animation-delay: 0.20s; }
+  .accordion-item:nth-child(5) { animation-delay: 0.25s; }
+  .accordion-item:nth-child(6) { animation-delay: 0.30s; }
+  .accordion-item:nth-child(7) { animation-delay: 0.35s; }
+  .accordion-item:nth-child(8) { animation-delay: 0.40s; }
+  .accordion-item:nth-child(9) { animation-delay: 0.45s; }
+  .accordion-item:nth-child(10) { animation-delay: 0.50s; }
+
+  .accordion-trigger {
+    width: 100%;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 20px 32px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    text-align: left;
+    transition: background 0.2s;
+    color: var(--text);
+  }
+  .accordion-trigger:hover {
+    background: rgba(74,222,74,0.03);
+  }
+  .accordion-trigger.open {
+    background: rgba(74,222,74,0.04);
+  }
+
+  .acc-number {
+    font-family: 'Syne', sans-serif;
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: var(--accent);
+    opacity: 0.6;
+    min-width: 24px;
+    letter-spacing: 0.05em;
+  }
+
+  .acc-icon {
+    width: 36px; height: 36px;
+    border-radius: 10px;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+    flex-shrink: 0;
+    transition: all 0.2s;
+  }
+  .accordion-trigger:hover .acc-icon,
+  .accordion-trigger.open .acc-icon {
+    background: var(--accent-dim);
+    border-color: rgba(74,222,74,0.3);
+  }
+
+  .acc-info {
+    flex: 1;
+  }
+  .acc-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 0.95rem;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    color: var(--text);
+    line-height: 1.3;
+  }
+  .acc-subtitle {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    margin-top: 2px;
+  }
+
+  .acc-meta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-left: auto;
+    flex-shrink: 0;
+  }
+  .acc-duration {
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    font-weight: 500;
+  }
+
+  .acc-chevron {
+    width: 20px; height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1);
+    color: var(--text-muted);
+  }
+  .accordion-trigger.open .acc-chevron {
+    transform: rotate(180deg);
+    color: var(--accent);
+  }
+
+  /* ── ACCORDION BODY ── */
+  .accordion-body {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .accordion-body.open {
+    max-height: 2000px;
+  }
+
+  .accordion-content {
+    padding: 0 32px 24px 88px;
+  }
+
+  .video-list {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .video-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    background: var(--bg3);
+    cursor: pointer;
+    transition: all 0.2s;
+    text-decoration: none;
+    color: inherit;
+  }
+  .video-item:hover {
+    border-color: rgba(74,222,74,0.3);
+    background: rgba(74,222,74,0.05);
+    transform: translateX(4px);
+  }
+  .video-item.done {
+    opacity: 0.55;
+  }
+  .video-item.done .video-title {
+    text-decoration: line-through;
+    text-decoration-color: var(--accent);
+    text-decoration-thickness: 1.5px;
+    color: var(--text-muted);
+  }
+  .video-item.done .done-btn {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #060a06;
+  }
+
+  .done-btn {
+    flex-shrink: 0;
+    margin-left: auto;
+    width: 22px; height: 22px;
+    border-radius: 50%;
+    border: 1.5px solid var(--border);
+    background: transparent;
+    color: transparent;
+    font-size: 0.65rem;
+    font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    z-index: 5;
+  }
+  .done-btn:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+
+  .video-play {
+    width: 30px; height: 30px;
+    border-radius: 8px;
+    background: var(--accent-dim);
+    border: 1px solid rgba(74,222,74,0.2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: all 0.2s;
+  }
+  .video-item:hover .video-play {
+    background: var(--accent);
+    box-shadow: 0 0 16px var(--accent-glow);
+  }
+  .video-play svg { width: 12px; height: 12px; fill: var(--accent); transition: fill 0.2s; }
+  .video-item:hover .video-play svg { fill: #060a06; }
+
+  .video-info { flex: 1; }
+  .video-title {
+    font-size: 0.82rem;
+    font-weight: 500;
+    color: var(--text);
+    line-height: 1.3;
+  }
+  .video-duration {
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    margin-top: 2px;
+  }
+
+  .video-badge {
+    font-size: 0.65rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 3px 8px;
+    border-radius: 6px;
+    background: rgba(74,222,74,0.08);
+    color: var(--accent);
+    border: 1px solid rgba(74,222,74,0.15);
+  }
+
+  /* ── VIDEO PLAYER ── */
+  .video-player-wrap {
+    display: none;
+    margin-top: 6px;
+    border-radius: 12px;
+    overflow: hidden;
+    border: 1px solid rgba(74,222,74,0.2);
+    background: #000;
+    position: relative;
+  }
+  .video-player-wrap.active { display: block; }
+  .video-player-wrap iframe {
+    width: 100%;
+    aspect-ratio: 16/9;
+    display: block;
+    border: none;
+  }
+  .player-close {
+    position: absolute;
+    top: 2px;
+    right: 20px;
+    width: 52px;
+    height: 48px;
+    border-radius: 8px;
+    background: #060a06;
+    border: none;
+    color: var(--accent);
+    font-size: 1.05rem;
+    font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    z-index: 10;
+    transition: color 0.2s;
+  }
+  .player-close:hover { color: #fff; }
+
+  .video-item.playing {
+    border-color: var(--accent);
+    background: rgba(74,222,74,0.06);
+  }
+  .video-item.playing .video-play {
+    background: var(--accent);
+    box-shadow: 0 0 16px var(--accent-glow);
+  }
+  .player-fullscreen {
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    width: 34px; height: 34px;
+    border-radius: 8px;
+    background: #060a06;
+    border: 1px solid rgba(74,222,74,0.25);
+    color: var(--accent);
+    font-size: 0.9rem;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    z-index: 10;
+    transition: background 0.2s;
+  }
+  .player-fullscreen:hover { background: rgba(74,222,74,0.15); }
+
+  /* Fullscreen overlay */
+  .player-fs-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: #000;
+    z-index: 9999;
+    flex-direction: column;
+  }
+  .player-fs-overlay.active { display: flex; }
+  .player-fs-overlay iframe {
+    flex: 1;
+    width: 100%;
+    border: none;
+  }
+  .player-fs-close {
+    position: absolute;
+    top: 12px; right: 12px;
+    width: 38px; height: 38px;
+    border-radius: 10px;
+    background: rgba(6,10,6,0.9);
+    border: 1.5px solid rgba(74,222,74,0.4);
+    color: var(--accent);
+    font-size: 1.1rem;
+    font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    z-index: 10000;
+    transition: background 0.2s;
+  }
+  .player-fs-close:hover { background: rgba(74,222,74,0.2); }
+
+  /* ── PROGRESS BAR ── */
+  .progress-wrap {
+    padding: 0 32px 0;
+    margin-bottom: 0;
+  }
+  .progress-bar-track {
+    height: 2px;
+    background: var(--border);
+    border-radius: 99px;
+    overflow: hidden;
+    margin-bottom: 6px;
+  }
+  .progress-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent), #7dff7d);
+    border-radius: 99px;
+    width: 0%;
+    transition: width 1s ease;
+    box-shadow: 0 0 8px var(--accent-glow);
+  }
+
+  /* ── EDIT MODE ── */
+  .edit-btn {
+    position: fixed;
+    bottom: 28px;
+    right: 28px;
+    width: 48px; height: 48px;
+    border-radius: 50%;
+    background: var(--bg2);
+    border: 1.5px solid var(--border);
+    color: var(--text);
+    font-size: 1.2rem;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    z-index: 100;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+    transition: all 0.2s;
+  }
+  .edit-btn:hover, .edit-btn.active {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #060a06;
+    box-shadow: 0 0 20px var(--accent-glow);
+  }
+
+  .confirm-btn {
+    position: fixed;
+    bottom: 86px;
+    right: 28px;
+    padding: 10px 18px;
+    border-radius: 50px;
+    background: var(--accent);
+    border: none;
+    color: #060a06;
+    font-family: 'Syne', sans-serif;
+    font-size: 0.8rem;
+    font-weight: 700;
+    display: none;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    z-index: 100;
+    box-shadow: 0 0 20px var(--accent-glow);
+    transition: all 0.2s;
+    white-space: nowrap;
+  }
+  .confirm-btn.visible { display: flex; }
+  .confirm-btn:hover { transform: scale(1.05); }
+
+  /* Editable elements in edit mode */
+  body.edit-mode [contenteditable] {
+    outline: 1.5px dashed rgba(74,222,74,0.5);
+    border-radius: 4px;
+    padding: 2px 4px;
+    cursor: text;
+    min-width: 20px;
+  }
+  body.edit-mode [contenteditable]:focus {
+    outline: 1.5px solid var(--accent);
+    background: rgba(74,222,74,0.05);
+  }
+  body.edit-mode .edit-hint {
+    display: block;
+  }
+  .edit-hint {
+    display: none;
+    font-size: 0.7rem;
+    color: var(--accent);
+    opacity: 0.7;
+    margin-top: 4px;
+    letter-spacing: 0.05em;
+  }
+
+  /* ── EDIT ADD ROW ── */
+  .edit-add-row {
+    display: none;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 14px;
+    border-radius: 10px;
+    border: 1.5px dashed rgba(74,222,74,0.3);
+    background: rgba(74,222,74,0.03);
+    cursor: pointer;
+    transition: all 0.2s;
+    color: var(--accent);
+    font-size: 0.8rem;
+    font-weight: 600;
+    margin-top: 4px;
+    list-style: none;
+  }
+  .edit-add-row:hover { background: rgba(74,222,74,0.08); border-color: var(--accent); }
+
+  .edit-remove-btn {
+    display: none;
+    flex-shrink: 0;
+    width: 24px; height: 24px;
+    border-radius: 6px;
+    background: rgba(255,80,80,0.1);
+    border: 1px solid rgba(255,80,80,0.25);
+    color: #ff6b6b;
+    font-size: 0.7rem;
+    align-items: center; justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .edit-remove-btn:hover { background: rgba(255,80,80,0.25); }
+
+  /* ── ADD MODAL ── */
+  .add-modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.7);
+    z-index: 9998;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(4px);
+  }
+  .add-modal-overlay.active { display: flex; }
+  .add-modal {
+    background: var(--bg2);
+    border: 1px solid rgba(74,222,74,0.25);
+    border-radius: 20px;
+    padding: 28px;
+    width: 100%;
+    max-width: 440px;
+    margin: 20px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+    animation: fadeUp 0.25s ease;
+  }
+  .add-modal h3 {
+    font-family: 'Syne', sans-serif;
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 20px;
+  }
+  .add-modal label {
+    display: block;
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    font-weight: 500;
+    margin-bottom: 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+  .add-modal input, .add-modal select {
+    width: 100%;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 10px 14px;
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.85rem;
+    margin-bottom: 14px;
+    outline: none;
+    transition: border-color 0.2s;
+    box-sizing: border-box;
+  }
+  .add-modal input:focus, .add-modal select:focus { border-color: var(--accent); }
+  .add-modal select option { background: var(--bg2); }
+  .add-modal-btns { display: flex; gap: 8px; margin-top: 4px; }
+  .add-modal-btns button {
+    flex: 1; padding: 11px;
+    border-radius: 10px; border: none;
+    font-family: 'Syne', sans-serif;
+    font-size: 0.82rem; font-weight: 700;
+    cursor: pointer; transition: all 0.2s;
+  }
+  .btn-cancel { background: var(--bg3); color: var(--text-muted); border: 1px solid var(--border) !important; }
+  .btn-cancel:hover { color: var(--text); }
+  .btn-add { background: var(--accent); color: #060a06; }
+  .btn-add:hover { opacity: 0.9; }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ── SCROLLBAR ── */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: rgba(74,222,74,0.2); border-radius: 99px; }
+  ::-webkit-scrollbar-thumb:hover { background: rgba(74,222,74,0.4); }
+
+  /* ── RESPONSIVE ── */
+  @media (max-width: 600px) {
+    header { padding: 20px; }
+    .nav-pill { display: none; }
+    .badge-header { padding: 20px; }
+    .accordion-trigger { padding: 16px 20px; }
+    .accordion-content { padding: 0 20px 20px 20px; }
+    .acc-number { display: none; }
+    .progress-wrap { padding: 0 20px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- EDIT BUTTON -->
+<button class="edit-btn" id="editBtn" onclick="toggleEditMode()" title="Modo edição">✏️</button>
+<button class="confirm-btn" id="confirmBtn" onclick="confirmEdit()">✅ Confirmar alterações</button>
+
+<div class="ambient ambient-1"></div>
+<div class="ambient ambient-2"></div>
+
+<!-- HEADER -->
+<header>
+  <div class="logo">
+    <div class="logo-dot"></div>
+    MedStudy
+  </div>
+  <nav class="nav-pill">
+    <a href="#" class="active">Módulos</a>
+    <a href="#">Flashcards</a>
+    <a href="#">Simulados</a>
+    <a href="#">Progresso</a>
+  </nav>
+</header>
+
+<!-- MAIN -->
+<main>
+
+  <!-- PAGE TITLE -->
+  <div class="page-title">
+    <div class="eyebrow" contenteditable="false">Trilha de estudos</div>
+    <h1><span contenteditable="false">Sua jornada </span><span contenteditable="false" style="color:var(--accent)">médica</span><br><span contenteditable="false">começa aqui.</span></h1>
+    <p contenteditable="false">Videoaulas organizadas por tema para fixar o conteúdo de forma objetiva e eficiente.</p>
+    <span class="edit-hint">✏️ clique para editar qualquer texto</span>
+  </div>
+
+  <!-- BADGE CARD -->
+  <div class="badge-card">
+
+    <!-- BADGE HEADER -->
+    <div class="badge-header">
+      <div class="badge-info">
+        <div class="badge-icon">🏅</div>
+        <div class="badge-text">
+          <h2>Programada 3</h2>
+          <span>10 temas · 28 videoaulas · ~6h de conteúdo</span>
+        </div>
+      </div>
+      <div class="badge-chip">
+        <div class="chip chip-green">
+          <svg width="7" height="7" viewBox="0 0 8 8" fill="none"><circle cx="4" cy="4" r="4" fill="#4ade4a"/></svg>
+          Ativo
+        </div>
+        <div class="chip chip-count">0 / 10 concluídos</div>
+      </div>
+    </div>
+
+    <!-- PROGRESS -->
+    <div class="progress-wrap" style="padding: 16px 32px 0;">
+      <div class="progress-bar-track">
+        <div class="progress-bar-fill" id="progressFill" style="width:0%"></div>
+      </div>
+    </div>
+
+    <!-- ACCORDION LIST -->
+    <div class="accordion-list" id="accordionList">
+
+      <!-- Each accordion item: data-videos carries comma-separated video titles/durations -->
+      <div class="accordion-item">
+        <button class="accordion-trigger" onclick="toggleAccordion(this)">
+          <span class="acc-number">01</span>
+          <div class="acc-icon">🫁</div>
+          <div class="acc-info">
+            <div class="acc-title" data-fid="fid-1">Pneumonia adquirida em comunidade</div>
+            <div class="acc-subtitle" data-fid="fid-2">Infectologia · 2 vídeos · 1 PDF</div>
+          </div>
+          <div class="acc-meta">
+            <span class="acc-duration">2 vídeos</span>
+            <div class="acc-chevron"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></div>
+          </div>
+        </button>
+        <div class="accordion-body">
+          <div class="accordion-content">
+            <ul class="video-list" data-list="list-1">
+              <li class="video-item" onclick="togglePlayer(this, '1D9tpqnNlSwAJSA5kZjLgkmx5AfM2DC6-')">
+                <div class="video-play"><svg viewBox="0 0 12 12"><path d="M3 2l7 4-7 4V2z"/></svg></div>
+                <div class="video-info"><div class="video-title" data-fid="fid-3">Vídeo 1 — Pneumonia adquirida em comunidade</div><div class="video-duration" data-fid="fid-4">▶ Clique para assistir</div></div>
+                <span class="video-badge">VÍDEO</span><button class="done-btn" onclick="toggleDone(event,this)">✓</button>
+              <button class="edit-remove-btn" onclick="removeItem(event,this)" title="Remover">🗑</button>
+              </li>
+              <div class="video-player-wrap" id="player-1D9tpqnNlSwAJSA5kZjLgkmx5AfM2DC6-">
+                <button class="player-close" onclick="closePlayer(event,'1D9tpqnNlSwAJSA5kZjLgkmx5AfM2DC6-')">✕</button>
+                <iframe src="" allowfullscreen allow="autoplay"></iframe>
+              </div>
+              <li class="video-item" onclick="togglePlayer(this, '19iGWCx1OPXczxQbB-B5ZZoBRwYHN34Qg')">
+                <div class="video-play"><svg viewBox="0 0 12 12"><path d="M3 2l7 4-7 4V2z"/></svg></div>
+                <div class="video-info"><div class="video-title" data-fid="fid-5">Vídeo 2 — Pneumonia adquirida em comunidade</div><div class="video-duration" data-fid="fid-6">▶ Clique para assistir</div></div>
+              <span class="video-badge">VÍDEO</span><button class="done-btn" onclick="toggleDone(event,this)">✓</button>
+              <button class="edit-remove-btn" onclick="removeItem(event,this)" title="Remover">🗑</button>
+              </li>
+              <div class="video-player-wrap" id="player-19iGWCx1OPXczxQbB-B5ZZoBRwYHN34Qg">
+                <button class="player-close" onclick="closePlayer(event,'19iGWCx1OPXczxQbB-B5ZZoBRwYHN34Qg')">✕</button>
+                <iframe src="" allowfullscreen allow="autoplay"></iframe>
+              </div>
+              <li class="video-item" onclick="togglePlayer(this, 'pdf-1QtZh48FVVBb--1PgYT4YXJ60vMrvRnBf')" style="cursor:pointer;">
+                <div class="video-play" style="background:rgba(74,222,74,0.07);"><svg viewBox="0 0 12 12" style="fill:var(--accent)"><path d="M2 1h8v1H9v8H3V2H2V1zm1 1v7h6V2H3zm1 1h4v1H4V3zm0 2h4v1H4V5zm0 2h3v1H4V7z"/></svg></div>
+                <div class="video-info"><div class="video-title" data-fid="fid-7">📄 PDF PNEUMONIA</div><div class="video-duration" data-fid="fid-8">▶ Clique para abrir</div></div>
+                <span class="video-badge">PDF</span><button class="done-btn" onclick="toggleDone(event,this)">✓</button>
+              <button class="edit-remove-btn" onclick="removeItem(event,this)" title="Remover">🗑</button>
+              </li>
+              <div class="video-player-wrap" id="player-pdf-1QtZh48FVVBb--1PgYT4YXJ60vMrvRnBf" style="aspect-ratio:4/3;">
+                <button class="player-close" onclick="closePlayer(event,'pdf-1QtZh48FVVBb--1PgYT4YXJ60vMrvRnBf')">✕</button>
+                <button class="player-fullscreen" onclick="openFullscreen(event,'pdf-1QtZh48FVVBb--1PgYT4YXJ60vMrvRnBf')">⛶</button>
+                <iframe src="" allowfullscreen style="aspect-ratio:4/3; min-height:400px;"></iframe>
+              </div>
+              <li class="edit-add-row" onclick="openAddModal(this.closest('.video-list'))">
+                ＋ Adicionar vídeo ou PDF
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <div class="accordion-item">
+        <button class="accordion-trigger" onclick="toggleAccordion(this)">
+          <span class="acc-number">02</span>
+          <div class="acc-icon">🩸</div>
+          <div class="acc-info">
+            <div class="acc-title" data-fid="fid-9">Anemias carenciais (ferropriva e megaloblástica)</div>
+            <div class="acc-subtitle" data-fid="fid-10">Hematologia · 2 vídeos · 1 PDF</div>
+          </div>
+          <div class="acc-meta">
+            <span class="acc-duration">2 vídeos</span>
+            <div class="acc-chevron"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></div>
+          </div>
+        </button>
+        <div class="accordion-body">
+          <div class="accordion-content">
+            <ul class="video-list" data-list="list-2">
+              <li class="video-item" onclick="togglePlayer(this, '1IC63BcE89Vt6K-x9VgEiNV4wGiqgH4RZ')">
+                <div class="video-play"><svg viewBox="0 0 12 12"><path d="M3 2l7 4-7 4V2z"/></svg></div>
+                <div class="video-info"><div class="video-title" data-fid="fid-11">Vídeo 1 — Anemias carenciais (ferropriva e megaloblástica)</div><div class="video-duration" data-fid="fid-12">▶ Clique para assistir</div></div>
+                <span class="video-badge">VÍDEO</span><button class="done-btn" onclick="toggleDone(event,this)">✓</button>
+              <button class="edit-remove-btn" onclick="removeItem(event,this)" title="Remover">🗑</button>
+              </li>
+              <div class="video-player-wrap" id="player-1IC63BcE89Vt6K-x9VgEiNV4wGiqgH4RZ">
+                <button class="player-close" onclick="closePlayer(event,'1IC63BcE89Vt6K-x9VgEiNV4wGiqgH4RZ')">✕</button>
+                <iframe src="" allowfullscreen allow="autoplay"></iframe>
+              </div>
+              <li class="video-item" onclick="togglePlayer(this, '1djiNMHgCaBjkRD8LvpvFetVTON45Mj35')">
+                <div class="video-play"><svg viewBox="0 0 12 12"><path d="M3 2l7 4-7 4V2z"/></svg></div>
+                <div class="video-info"><div class="video-title" data-fid="fid-13">Vídeo 2 — Anemias carenciais (ferropriva e megaloblástica)</div><div class="video-duration" data-fid="fid-14">▶ Clique para assistir</div></div>
+              <span class="video-badge">VÍDEO</span><button class="done-btn" onclick="toggleDone(event,this)">✓</button>
+              <button class="edit-remove-btn" onclick="removeItem(event,this)" title="Remover">🗑</button>
+              </li>
+              <div class="video-player-wrap" id="player-1djiNMHgCaBjkRD8LvpvFetVTON45Mj35">
+                <button class="player-close" onclick="closePlayer(event,'1djiNMHgCaBjkRD8LvpvFetVTON45Mj35')">✕</button>
+                <iframe src="" allowfullscreen allow="autoplay"></iframe>
+              </div>
+              <li class="video-item" onclick="togglePlayer(this, 'pdf-1JWpoohkMjG5fIClYJTap4DYYW85kvd3T')" style="cursor:pointer;">
+                <div class="video-play" style="background:rgba(74,222,74,0.07);"><svg viewBox="0 0 12 12" style="fill:var(--accent)"><path d="M2 1h8v1H9v8H3V2H2V1zm1 1v7h6V2H3zm1 1h4v1H4V3zm0 2h4v1H4V5zm0 2h3v1H4V7z"/></svg></div>
+                <div class="video-info"><div class="video-title" data-fid="fid-15">📄 PDF ANEMIAS CARENCIAIS</div><div class="video-duration" data-fid="fid-16">▶ Clique para abrir</div></div>
+                <span class="video-badge">PDF</span><button class="done-btn" onclick="toggleDone(event,this)">✓</button>
+              <button class="edit-remove-btn" onclick="removeItem(event,this)" title="Remover">🗑</button>
+              </li>
+              <div class="video-player-wrap" id="player-pdf-1JWpoohkMjG5fIClYJTap4DYYW85kvd3T" style="aspect-ratio:4/3;">
+                <button class="player-close" onclick="closePlayer(event,'pdf-1JWpoohkMjG5fIClYJTap4DYYW85kvd3T')">✕</button>
+                <button class="player-fullscreen" onclick="openFullscreen(event,'pdf-1JWpoohkMjG5fIClYJTap4DYYW85kvd3T')">⛶</button>
+                <iframe src="" allowfullscreen style="aspect-ratio:4/3; min-height:400px;"></iframe>
+              </div>
+              <li class="edit-add-row" onclick="openAddModal(this.closest('.video-list'))">
+                ＋ Adicionar vídeo ou PDF
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <div class="accordion-item">
+        <button class="accordion-trigger" onclick="toggleAccordion(this)">
+          <span class="acc-number">03</span>
+          <div class="acc-icon">🔴</div>
+          <div class="acc-info">
+            <div class="acc-title" data-fid="fid-17">Anemias hemolíticas (autoimune, falciforme e talassemias)</div>
+            <div class="acc-subtitle" data-fid="fid-18">Hematologia · 3 vídeos</div>
+          </div>
+          <div class="acc-meta">
+            <span class="acc-duration">45 min</span>
+            <div class="acc-chevron"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></div>
+          </div>
+        </button>
+        <div class="accordion-body">
+          <div class="accordion-content">
+            <ul class="video-list" data-list="list-3">
+              <li class="video-item">
+                <div class="video-play"><svg viewBox="0 0 12 12"><path d="M3 2l7 4-7 4V2z"/></svg></div>
+                <div class="video-info"><div class="video-title" data-fid="fid-19">Anemia Hemolítica Autoimune: Mecanismo e Terapêutica</div><div class="video-duration" data-fid="fid-20">16 min</div></div>
+                <span class="video-badge">VÍDEO</span><button class="done-btn" onclick="toggleDone(event,this)">✓</button>
+              <button class="edit-remove-btn" onclick="removeItem(event,this)" title="Remover">🗑</button>
+              </li>
+              <li class="video-item">
+                <div class="video-play"><svg viewBox="0 0 12 12"><path d="M3 2l7 4-7 4V2z"/></svg></div>
+                <div class="video-info"><div class="video-title" data-fid="fid-21">Doença Falciforme: Crises e Complicações</div><div class="video-duration" data-fid="fid-22">17 min</div></div>
+              <span class="video-badge">VÍDEO</span><button class="done-btn" onclick="toggleDone(event,this)">✓</button>
+              <button class="edit-remove-btn" onclick="removeItem(event,this)" title="Remover">🗑</button>
+              </li>
+              <li class="video-item">
+                <div class="video-play"><svg viewBox="0 0 12 12"><path d="M3 2l7 4-7 4V2z"/></svg></div>
+                <div class="video-info"><div class="video-title" data-fid="fid-23">Talassemias: Alpha e Beta</div><div class="video-duration" data-fid="fid-24">12 min</div></div>
+              <span class="video-badge">VÍDEO</span><button class="done-btn" onclick="toggleDone(event,this)">✓</button>
+              <button class="edit-remove-btn" onclick="removeItem(event,this)" title="Remover">🗑</button>
+              </li>
+              <li class="edit-add-row" onclick="openAddModal(this.closest('.video-list'))">
+                ＋ Adicionar vídeo ou PDF
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <div class="accordion-item">
+        <button class="accordion-trigger" onclick="toggleAccordion(this)">
+          <span class="acc-number">04</span>
+          <div class="acc-icon">🦟</div>
+          <div class="acc-info">
+            <div class="acc-title" data-fid="fid-25">Malária</div>
+            <div class="acc-subtitle" data-fid="fid-26">Infectologia · 2 vídeos</div>
+          </div>
+          <div class="acc-meta">
+            <span class="acc-duration">28 min</span>
+            <div class="acc-chevron"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></div>
+          </div>
+        </button>
+        <div class="accordion-body">
+          <div class="accordion-content">
+            <ul class="video-list" data-list="list-4">
+              <li class="video-item">
+                <div class="video-play"><svg viewBox="0 0 12 12"><path d="M3 2l7 4-7 4V2z"/></svg></div>
+                <div class="video-info"><div class="video-title" data-fid="fid-27">Ciclo do Plasmodium e Manifestações Clínicas</div><div class="video-duration" data-fid="fid-28">14 min</div></div>
+                <span class="video-badge">VÍDEO</span><button class="done-btn" onclick="toggleDone(event,this)">✓</button>
+              <button class="edit-remove-btn" onclick="removeItem(event,this)" title="Remover">🗑</button>
+              </li>
+              <li class="video-item">
+                <div class="video-play"><svg viewBox="0 0 12 12"><path d="M3 2l7 4-7 4V2z"/></svg></div>
+                <div class="video-info"><div class="video-title" data-fid="fid-29">Diagnóstico, Tratamento e Prevenção</div><div class="video-duration" data-fid="fid-30">14 min</div></div>
+              <span class="video-badge">VÍDEO</span><button class="done-btn" onclick="toggleDone(event,this)">✓</button>
+              <button class="edit-remove-btn" onclick="removeItem(event,this)" title="Remover">🗑</button>
+              </li>
+              <li class="edit-add-row" onclick="openAddModal(this.closest('.video-list'))">
+                ＋ Adicionar vídeo ou PDF
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <div class="accordion-item">
+        <button class="accordion-trigger" onclick="toggleAccordion(this)">
+          <span class="acc-number">05</span>
+          <div class="acc-icon">🌡️</div>
+          <div class="acc-info">
+            <div class="acc-title" data-fid="fid-31">Arboviroses (Dengue, Zika e Chikungunya)</div>
+            <div class="acc-subtitle" data-fid="fid-32">Infectologia · 3 vídeos</div>
+          </div>
+          <div class="acc-meta">
+            <span class="acc-duration">40 min</span>
+            <div class="acc-chevron"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></div>
+          </div>
+        </button>
+        <div class="accordion-body">
+          <div class="accordion-content">
+            <ul class="video-list" data-list="list-5">
+              <li class="video-item">
+                <div class="video-play"><svg viewBox="0 0 12 12"><path d="M3 2l7 4-7 4V2z"/></svg></div>
+                <div class="video-info"><div class="video-title" data-fid="fid-33">Dengue: Classificação, Sinais de Alarme e Manejo</div><div class="video-duration" data-fid="fid-34">16 min</div></div>
+                <span class="video-badge">VÍDEO</span><button class="done-btn" onclick="toggleDone(event,this)">✓</button>
+              <button class="edit-remove-btn" onclick="removeItem(event,this)" title="Remover">🗑</button>
+              </li>
+              <li class="video-item">
+                <div class="video-play"><svg viewBox="0 0 12 12"><path d="M3 2l7 4-7 4V2z"/></svg></div>
+                <div class="video-info"><div class="video-title" data-fid="fid-35">Zika Vírus e Síndrome Congênita</div><div class="video-duration" data-fid="fid-36">12 min</div></div>
+              <span class="video-badge">VÍDEO</span><button class="done-btn" onclick="toggleDone(event,this)">✓</button>
+              <button class="edit-remove-btn" onclick="removeItem(event,this)" title="Remover">🗑</button>
+              </li>
+              <li class="video-item">
+                <div class="video-play"><svg viewBox="0 0 12 12"><path d="M3 2l7 4-7 4V2z"/></svg></div>
+                <div class="video-info"><div class="video-title" data-fid="fid-37">Chikungunya: Artralgia Persistente e Tratamento</div><div class="video-duration" data-fid="fid-38">12 min</div></div>
+              <span class="video-badge">VÍDEO</span><button class="done-btn" onclick="toggleDone(event,this)">✓</button>
+              <button class="edit-remove-btn" onclick="removeItem(event,this)" title="Remover">🗑</button>
+              </li>
+              <li class="edit-add-row" onclick="openAddModal(this.closest('.video-list'))">
+                ＋ Adicionar vídeo ou PDF
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <div class="accordion-item">
+        <button class="accordion-trigger" onclick="toggleAccordion(this)">
+          <span class="acc-number">06</span>
+          <div class="acc-icon">🧬</div>
+          <div class="acc-info">
+            <div class="acc-title" data-fid="fid-39">Hemofilia e Coagulopatias Hereditárias</div>
+            <div class="acc-subtitle" data-fid="fid-40">Hematologia · 3 vídeos</div>
+          </div>
+          <div class="acc-meta">
+            <span class="acc-duration">36 min</span>
+            <div class="acc-chevron"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></div>
+          </div>
+        </button>
+        <div class="accordion-body">
+          <div class="accordion-content">
+            <ul class="video-list" data-list="list-6">
+              <li class="video-item">
+                <div class="video-play"><svg viewBox="0 0 12 12"><path d="M3 2l7 4-7 4V2z"/></svg></div>
+                <div class="video-info"><div class="video-title" data-fid="fid-41">Hemofilia A e B: Fisiopatologia e Genética</div><div class="video-duration" data-fid="fid-42">13 min</div></div>
+                <span class="video-badge">VÍDEO</span><button class="done-btn" onclick="toggleDone(event,this)">✓</button>
+              <button class="edit-remove-btn" onclick="removeItem(event,this)" title="Remover">🗑</button>
+              </li>
+              <li class="video-item">
+                <div class="video-play"><svg viewBox="0 0 12 12"><path d="M3 2l7 4-7 4V2z"/></svg></div>
+                <div class="video-info"><div class="video-title" data-fid="fid-43">Doença de von Willebrand</div><div class="video-duration" data-fid="fid-44">11 min</div></div>
+              <span class="video-badge">VÍDEO</span><button class="done-btn" onclick="toggleDone(event,this)">✓</button>
+              <button class="edit-remove-btn" onclick="removeItem(event,this)" title="Remover">🗑</button>
+              </li>
+              <li class="video-item">
+                <div class="video-play"><svg viewBox="0 0 12 12"><path d="M3 2l7 4-7 4V2z"/></svg></div>
+                <div class="video-info"><div class="video-title" data-fid="fid-45">Manejo das Crises Hemorrágicas</div><div class="video-duration" data-fid="fid-46">12 min</div></div>
+              <span class="video-badge">VÍDEO</span><button class="done-btn" onclick="toggleDone(event,this)">✓</button>
+              <button class="edit-remove-btn" onclick="removeItem(event,this)" title="Remover">🗑</button>
+              </li>
+              <li class="edit-add-row" onclick="openAddModal(this.closest('.video-list'))">
+                ＋ Adicionar vídeo ou PDF
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <div class="accordion-item">
+        <button class="accordion-trigger" onclick="toggleAccordion(this)">
+          <span class="acc-number">07</span>
+          <div class="acc-icon">🔬</div>
+          <div class="acc-info">
+            <div class="acc-title" data-fid="fid-47">Leucemias e Linfomas</div>
+            <div class="acc-subtitle" data-fid="fid-48">Oncohematologia · 3 vídeos</div>
+          </div>
+          <div class="acc-meta">
+            <span class="acc-duration">50 min</span>
+            <div class="acc-chevron"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></div>
+          </div>
+        </button>
+        <div class="accordion-body">
+          <div class="accordion-content">
+            <ul class="video-list" data-list="list-7">
+              <li class="video-item">
+                <div class="video-play"><svg viewBox="0 0 12 12"><path d="M3 2l7 4-7 4V2z"/></svg></div>
+                <div class="video-info"><div class="video-title" data-fid="fid-49">Leucemias Agudas: LLA e LMA</div><div class="video-duration" data-fid="fid-50">18 min</div></div>
+                <span class="video-badge">VÍDEO</span><button class="done-btn" onclick="toggleDone(event,this)">✓</button>
+              <button class="edit-remove-btn" onclick="removeItem(event,this)" title="Remover">🗑</button>
+              </li>
+              <li class="video-item">
+                <div class="video-play"><svg viewBox="0 0 12 12"><path d="M3 2l7 4-7 4V2z"/></svg></div>
+                <div class="video-info"><div class="video-title" data-fid="fid-51">Leucemias Crônicas: LLC e LMC</div><div class="video-duration" data-fid="fid-52">16 min</div></div>
+              <span class="video-badge">VÍDEO</span><button class="done-btn" onclick="toggleDone(event,this)">✓</button>
+              <button class="edit-remove-btn" onclick="removeItem(event,this)" title="Remover">🗑</button>
+              </li>
+              <li class="video-item">
+                <div class="video-play"><svg viewBox="0 0 12 12"><path d="M3 2l7 4-7 4V2z"/></svg></div>
+                <div class="video-info"><div class="video-title" data-fid="fid-53">Linfoma de Hodgkin e Não-Hodgkin</div><div class="video-duration" data-fid="fid-54">16 min</div></div>
+              <span class="video-badge">VÍDEO</span><button class="done-btn" onclick="toggleDone(event,this)">✓</button>
+              <button class="edit-remove-btn" onclick="removeItem(event,this)" title="Remover">🗑</button>
+              </li>
+              <li class="edit-add-row" onclick="openAddModal(this.closest('.video-list'))">
+                ＋ Adicionar vídeo ou PDF
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <div class="accordion-item">
+        <button class="accordion-trigger" onclick="toggleAccordion(this)">
+          <span class="acc-number">08</span>
+          <div class="acc-icon">🩹</div>
+          <div class="acc-info">
+            <div class="acc-title" data-fid="fid-55">Piodermites (Erisipela, Celulite e Impetigo)</div>
+            <div class="acc-subtitle" data-fid="fid-56">Dermatologia · 3 vídeos</div>
+          </div>
+          <div class="acc-meta">
+            <span class="acc-duration">33 min</span>
+            <div class="acc-chevron"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></div>
+          </div>
+        </button>
+        <div class="accordion-body">
+          <div class="accordion-content">
+            <ul class="video-list" data-list="list-8">
+              <li class="video-item">
+                <div class="video-play"><svg viewBox="0 0 12 12"><path d="M3 2l7 4-7 4V2z"/></svg></div>
+                <div class="video-info"><div class="video-title" data-fid="fid-57">Impetigo: Tipos Bolhoso e Não-Bolhoso</div><div class="video-duration" data-fid="fid-58">10 min</div></div>
+                <span class="video-badge">VÍDEO</span><button class="done-btn" onclick="toggleDone(event,this)">✓</button>
+              <button class="edit-remove-btn" onclick="removeItem(event,this)" title="Remover">🗑</button>
+              </li>
+              <li class="video-item">
+                <div class="video-play"><svg viewBox="0 0 12 12"><path d="M3 2l7 4-7 4V2z"/></svg></div>
+                <div class="video-info"><div class="video-title" data-fid="fid-59">Erisipela vs Celulite: Como Diferenciar</div><div class="video-duration" data-fid="fid-60">12 min</div></div>
+              <span class="video-badge">VÍDEO</span><button class="done-btn" onclick="toggleDone(event,this)">✓</button>
+              <button class="edit-remove-btn" onclick="removeItem(event,this)" title="Remover">🗑</button>
+              </li>
+              <li class="video-item">
+                <div class="video-play"><svg viewBox="0 0 12 12"><path d="M3 2l7 4-7 4V2z"/></svg></div>
+                <div class="video-info"><div class="video-title" data-fid="fid-61">Antibioticoterapia nas Piodermites</div><div class="video-duration" data-fid="fid-62">11 min</div></div>
+              <span class="video-badge">VÍDEO</span><button class="done-btn" onclick="toggleDone(event,this)">✓</button>
+              <button class="edit-remove-btn" onclick="removeItem(event,this)" title="Remover">🗑</button>
+              </li>
+              <li class="edit-add-row" onclick="openAddModal(this.closest('.video-list'))">
+                ＋ Adicionar vídeo ou PDF
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <div class="accordion-item">
+        <button class="accordion-trigger" onclick="toggleAccordion(this)">
+          <span class="acc-number">09</span>
+          <div class="acc-icon">🌿</div>
+          <div class="acc-info">
+            <div class="acc-title" data-fid="fid-63">Dermatite Atópica</div>
+            <div class="acc-subtitle" data-fid="fid-64">Dermatologia · 2 vídeos</div>
+          </div>
+          <div class="acc-meta">
+            <span class="acc-duration">26 min</span>
+            <div class="acc-chevron"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></div>
+          </div>
+        </button>
+        <div class="accordion-body">
+          <div class="accordion-content">
+            <ul class="video-list" data-list="list-9">
+              <li class="video-item">
+                <div class="video-play"><svg viewBox="0 0 12 12"><path d="M3 2l7 4-7 4V2z"/></svg></div>
+                <div class="video-info"><div class="video-title" data-fid="fid-65">Fisiopatologia e Critérios Diagnósticos</div><div class="video-duration" data-fid="fid-66">13 min</div></div>
+                <span class="video-badge">VÍDEO</span><button class="done-btn" onclick="toggleDone(event,this)">✓</button>
+              <button class="edit-remove-btn" onclick="removeItem(event,this)" title="Remover">🗑</button>
+              </li>
+              <li class="video-item">
+                <div class="video-play"><svg viewBox="0 0 12 12"><path d="M3 2l7 4-7 4V2z"/></svg></div>
+                <div class="video-info"><div class="video-title" data-fid="fid-67">Tratamento Escalonado e Biológicos</div><div class="video-duration" data-fid="fid-68">13 min</div></div>
+              <span class="video-badge">VÍDEO</span><button class="done-btn" onclick="toggleDone(event,this)">✓</button>
+              <button class="edit-remove-btn" onclick="removeItem(event,this)" title="Remover">🗑</button>
+              </li>
+              <li class="edit-add-row" onclick="openAddModal(this.closest('.video-list'))">
+                ＋ Adicionar vídeo ou PDF
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <div class="accordion-item">
+        <button class="accordion-trigger" onclick="toggleAccordion(this)">
+          <span class="acc-number">10</span>
+          <div class="acc-icon">⚕️</div>
+          <div class="acc-info">
+            <div class="acc-title" data-fid="fid-69">Hanseníase</div>
+            <div class="acc-subtitle" data-fid="fid-70">Infectologia / Dermatologia · 3 vídeos</div>
+          </div>
+          <div class="acc-meta">
+            <span class="acc-duration">35 min</span>
+            <div class="acc-chevron"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></div>
+          </div>
+        </button>
+        <div class="accordion-body">
+          <div class="accordion-content">
+            <ul class="video-list" data-list="list-10">
+              <li class="video-item">
+                <div class="video-play"><svg viewBox="0 0 12 12"><path d="M3 2l7 4-7 4V2z"/></svg></div>
+                <div class="video-info"><div class="video-title" data-fid="fid-71">Classificação Operacional e Formas Clínicas</div><div class="video-duration" data-fid="fid-72">13 min</div></div>
+                <span class="video-badge">VÍDEO</span><button class="done-btn" onclick="toggleDone(event,this)">✓</button>
+              <button class="edit-remove-btn" onclick="removeItem(event,this)" title="Remover">🗑</button>
+              </li>
+              <li class="video-item">
+                <div class="video-play"><svg viewBox="0 0 12 12"><path d="M3 2l7 4-7 4V2z"/></svg></div>
+                <div class="video-info"><div class="video-title" data-fid="fid-73">Diagnóstico: Baciloscopia e Hansenina</div><div class="video-duration" data-fid="fid-74">11 min</div></div>
+              <span class="video-badge">VÍDEO</span><button class="done-btn" onclick="toggleDone(event,this)">✓</button>
+              <button class="edit-remove-btn" onclick="removeItem(event,this)" title="Remover">🗑</button>
+              </li>
+              <li class="video-item">
+                <div class="video-play"><svg viewBox="0 0 12 12"><path d="M3 2l7 4-7 4V2z"/></svg></div>
+                <div class="video-info"><div class="video-title" data-fid="fid-75">Poliquimioterapia e Reações Hansênicas</div><div class="video-duration" data-fid="fid-76">11 min</div></div>
+              <span class="video-badge">VÍDEO</span><button class="done-btn" onclick="toggleDone(event,this)">✓</button>
+              <button class="edit-remove-btn" onclick="removeItem(event,this)" title="Remover">🗑</button>
+              </li>
+              <li class="edit-add-row" onclick="openAddModal(this.closest('.video-list'))">
+                ＋ Adicionar vídeo ou PDF
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /accordion-list -->
+  </div><!-- /badge-card -->
+
+</main>
+
+<!-- ADD ITEM MODAL -->
+<div class="add-modal-overlay" id="addModal">
+  <div class="add-modal">
+    <h3>➕ Adicionar conteúdo</h3>
+    <label>Tipo</label>
+    <select id="addType">
+      <option value="video">🎬 Vídeo</option>
+      <option value="pdf">📄 PDF</option>
+    </select>
+    <label>Link do Google Drive</label>
+    <input id="addLink" type="text" placeholder="https://drive.google.com/file/d/...">
+    <label>Título</label>
+    <input id="addTitle" type="text" placeholder="Nome do conteúdo">
+    <div class="add-modal-btns">
+      <button class="btn-cancel" onclick="closeAddModal()">Cancelar</button>
+      <button class="btn-add" onclick="confirmAdd()">Adicionar</button>
+    </div>
+  </div>
+</div>
+
+<!-- FULLSCREEN OVERLAY -->
+<div class="player-fs-overlay" id="fs-overlay">
+  <button class="player-fs-close" onclick="closeFullscreen()">✕</button>
+  <iframe id="fs-iframe" src="" allowfullscreen></iframe>
+</div>
+
+<script>
+
+  /* ══════════════════════════════
+     EDIT MODE
+  ══════════════════════════════ */
+  function toggleEditMode() {
+    const body = document.body;
+    const editBtn = document.getElementById('editBtn');
+    const confirmBtn = document.getElementById('confirmBtn');
+    const isEditing = body.classList.toggle('edit-mode');
+
+    const editables = document.querySelectorAll(
+      '.acc-title, .acc-subtitle, .video-title, .video-duration, .eyebrow, .page-title p, .badge-text h2, .badge-text span'
+    );
+    editables.forEach(el => { el.contentEditable = isEditing ? 'true' : 'false'; });
+    document.querySelectorAll('.page-title [contenteditable]').forEach(el => {
+      el.contentEditable = isEditing ? 'true' : 'false';
+    });
+
+    // Show/hide add-item buttons inside accordions
+    document.querySelectorAll('.edit-add-row').forEach(el => {
+      el.style.display = isEditing ? 'flex' : 'none';
+    });
+    document.querySelectorAll('.edit-remove-btn').forEach(el => {
+      el.style.display = isEditing ? 'flex' : 'none';
+    });
+
+    editBtn.classList.toggle('active', isEditing);
+    editBtn.title = isEditing ? 'Sair sem salvar' : 'Modo edição';
+    editBtn.textContent = isEditing ? '✕' : '✏️';
+    confirmBtn.classList.toggle('visible', isEditing);
+  }
+
+  function confirmEdit() {
+    document.querySelectorAll('[contenteditable="true"]').forEach(el => {
+      el.contentEditable = 'false';
+    });
+    document.querySelectorAll('.edit-add-row').forEach(el => el.style.display = 'none');
+    document.querySelectorAll('.edit-remove-btn').forEach(el => el.style.display = 'none');
+
+    const body = document.body;
+    const editBtn = document.getElementById('editBtn');
+    const confirmBtn = document.getElementById('confirmBtn');
+
+    body.classList.remove('edit-mode');
+    editBtn.classList.remove('active');
+    editBtn.textContent = '✏️';
+    editBtn.title = 'Modo edição';
+    confirmBtn.classList.remove('visible');
+
+    // Save to Firebase
+    confirmBtn.textContent = '⏳ Salvando...';
+    confirmBtn.classList.add('visible');
+
+    if (window._saveToFirebase) {
+      window._saveToFirebase().then(() => {
+        confirmBtn.textContent = '✅ Salvo no Firebase!';
+        setTimeout(() => {
+          confirmBtn.classList.remove('visible');
+          confirmBtn.textContent = '✅ Confirmar alterações';
+        }, 2000);
+      }).catch(() => {
+        confirmBtn.textContent = '❌ Erro ao salvar';
+        setTimeout(() => {
+          confirmBtn.classList.remove('visible');
+          confirmBtn.textContent = '✅ Confirmar alterações';
+        }, 2000);
+      });
+    } else {
+      confirmBtn.textContent = '✅ Salvo!';
+      setTimeout(() => {
+        confirmBtn.classList.remove('visible');
+        confirmBtn.textContent = '✅ Confirmar alterações';
+      }, 1500);
+    }
+  }
+
+  /* ══════════════════════════════
+     ADD ITEM MODAL
+  ══════════════════════════════ */
+  let _targetList = null;
+
+  function openAddModal(listEl) {
+    _targetList = listEl;
+    document.getElementById('addModal').classList.add('active');
+    document.getElementById('addLink').value = '';
+    document.getElementById('addTitle').value = '';
+    document.getElementById('addType').value = 'video';
+  }
+
+  function closeAddModal() {
+    document.getElementById('addModal').classList.remove('active');
+    _targetList = null;
+  }
+
+  function confirmAdd() {
+    const link = document.getElementById('addLink').value.trim();
+    const title = document.getElementById('addTitle').value.trim() || 'Sem título';
+    const type = document.getElementById('addType').value;
+
+    if (!link) { alert('Cole o link do Google Drive!'); return; }
+
+    const match = link.match(/\/d\/([a-zA-Z0-9_-]+)/);
+    if (!match) { alert('Link inválido. Use um link do Google Drive.'); return; }
+    const rawId = match[1];
+    const fileId = (type === 'pdf' ? 'pdf-' : '') + rawId;
+    const isPdf = type === 'pdf';
+    const badge = isPdf ? 'PDF' : 'VÍDEO';
+    const listEl = _targetList;
+    const listId = listEl.dataset.list || 'unknown';
+    const fid = 'added-' + Date.now();
+
+    const li = document.createElement('li');
+    li.className = 'video-item';
+    li.dataset.added = '1';
+    li.dataset.fileId = fileId;
+    li.dataset.listId = listId;
+    li.dataset.type = type;
+    li.setAttribute('onclick', `togglePlayer(this, '${fileId}')`);
+    li.innerHTML = `
+      <div class="video-play"><svg viewBox="0 0 12 12"><path d="M3 2l7 4-7 4V2z"/></svg></div>
+      <div class="video-info">
+        <div class="video-title" data-fid="${fid}">${title}</div>
+        <div class="video-duration">▶ Clique para ${isPdf ? 'abrir' : 'assistir'}</div>
+      </div>
+      <span class="video-badge">${badge}</span>
+      <button class="done-btn" onclick="toggleDone(event,this)">✓</button>
+      <button class="edit-remove-btn" onclick="removeItem(event,this)" title="Remover" style="display:flex;">🗑</button>
+    `;
+
+    const playerDiv = document.createElement('div');
+    playerDiv.className = 'video-player-wrap';
+    playerDiv.id = 'player-' + fileId;
+    if (isPdf) playerDiv.style.cssText = 'aspect-ratio:4/3;';
+    playerDiv.innerHTML = `
+      <button class="player-close" onclick="closePlayer(event,'${fileId}')">✕</button>
+      ${isPdf ? `<button class="player-fullscreen" onclick="openFullscreen(event,'${fileId}')">⛶</button>` : ''}
+      <iframe src="" allowfullscreen ${isPdf ? 'style="aspect-ratio:4/3;min-height:400px;"' : ''}></iframe>
+    `;
+
+    const addRow = listEl.querySelector('.edit-add-row');
+    listEl.insertBefore(li, addRow);
+    listEl.insertBefore(playerDiv, addRow);
+
+    closeAddModal();
+  }
+
+  /* ══════════════════════════════
+     REMOVE ITEM
+  ══════════════════════════════ */
+  function removeItem(e, btn) {
+    e.stopPropagation();
+    if (!confirm('Remover este item?')) return;
+    const li = btn.closest('.video-item');
+    const next = li.nextElementSibling;
+    // Also remove the player wrap if exists
+    if (next && next.classList.contains('video-player-wrap')) next.remove();
+    li.remove();
+  }
+
+  /* ══════════════════════════════
+     DONE / COMPLETION
+  ══════════════════════════════ */
+  function toggleDone(e, btn) {
+    e.stopPropagation();
+    const item = btn.closest('.video-item');
+    item.classList.toggle('done');
+    checkAccordionCompletion(item);
+    updateCounter();
+  }
+
+  function checkAccordionCompletion(item) {
+    const accordionItem = item.closest('.accordion-item');
+    if (!accordionItem) return;
+    const allItems = accordionItem.querySelectorAll('.video-item');
+    const doneItems = accordionItem.querySelectorAll('.video-item.done');
+    const trigger = accordionItem.querySelector('.accordion-trigger');
+    const titleEl = trigger.querySelector('.acc-title');
+    if (allItems.length > 0 && doneItems.length === allItems.length) {
+      trigger.classList.add('accordion-done');
+      titleEl.style.textDecoration = 'line-through';
+      titleEl.style.textDecorationColor = 'var(--accent)';
+      titleEl.style.textDecorationThickness = '1.5px';
+      titleEl.style.color = 'var(--text-muted)';
+    } else {
+      trigger.classList.remove('accordion-done');
+      titleEl.style.textDecoration = '';
+      titleEl.style.color = '';
+    }
+  }
+
+  function updateCounter() {
+    const total = document.querySelectorAll('.accordion-item').length;
+    const completed = document.querySelectorAll('.accordion-trigger.accordion-done').length;
+    const chip = document.querySelector('.chip-count');
+    if (chip) chip.textContent = completed + ' / ' + total + ' concluídos';
+  }
+
+  /* ══════════════════════════════
+     ACCORDION
+  ══════════════════════════════ */
+  function toggleAccordion(trigger) {
+    const item = trigger.closest('.accordion-item');
+    const body = item.querySelector('.accordion-body');
+    const isOpen = trigger.classList.contains('open');
+    document.querySelectorAll('.accordion-trigger.open').forEach(t => {
+      t.classList.remove('open');
+      t.closest('.accordion-item').querySelector('.accordion-body').classList.remove('open');
+    });
+    if (!isOpen) {
+      trigger.classList.add('open');
+      body.classList.add('open');
+    }
+  }
+
+  /* ══════════════════════════════
+     PLAYER
+  ══════════════════════════════ */
+  function togglePlayer(item, fileId) {
+    const wrap = document.getElementById('player-' + fileId);
+    if (!wrap) return;
+    const isActive = wrap.classList.contains('active');
+    document.querySelectorAll('.video-player-wrap.active').forEach(w => {
+      w.classList.remove('active');
+      w.querySelector('iframe').src = '';
+    });
+    document.querySelectorAll('.video-item.playing').forEach(i => i.classList.remove('playing'));
+    if (!isActive) {
+      wrap.classList.add('active');
+      const isPdf = fileId.startsWith('pdf-');
+      const id = isPdf ? fileId.replace('pdf-', '') : fileId;
+      wrap.querySelector('iframe').src = 'https://drive.google.com/file/d/' + id + '/preview';
+      item.classList.add('playing');
+      setTimeout(() => wrap.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 100);
+    }
+  }
+
+  function closePlayer(e, fileId) {
+    e.stopPropagation();
+    const wrap = document.getElementById('player-' + fileId);
+    if (!wrap) return;
+    wrap.classList.remove('active');
+    wrap.querySelector('iframe').src = '';
+    const prev = wrap.previousElementSibling;
+    if (prev && prev.classList.contains('video-item')) prev.classList.remove('playing');
+  }
+
+  function openFullscreen(e, fileId) {
+    e.stopPropagation();
+    const id = fileId.replace('pdf-', '');
+    const overlay = document.getElementById('fs-overlay');
+    document.getElementById('fs-iframe').src = 'https://drive.google.com/file/d/' + id + '/preview';
+    overlay.classList.add('active');
+    document.body.style.overflow = 'hidden';
+  }
+
+  function closeFullscreen() {
+    document.getElementById('fs-iframe').src = '';
+    document.getElementById('fs-overlay').classList.remove('active');
+    document.body.style.overflow = '';
+  }
+
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeFullscreen(); });
+
+  window.addEventListener('load', () => {
+    setTimeout(() => { document.getElementById('progressFill').style.width = '0%'; }, 500);
+  });
+</script>
+</body>
+</html>
