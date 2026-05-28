@@ -371,10 +371,6 @@
   }
 
   /* ── ACCORDION ITEM ── */
-  .accordion-item {
-    border-bottom: 1px solid var(--border);
-    animation: fadeUp 0.4s ease both;
-  }
   .accordion-item:last-child { border-bottom: none; }
 
   .accordion-item:nth-child(1) { animation-delay: 0.05s; }
@@ -884,7 +880,86 @@
   .btn-add { background: var(--accent); color: #060a06; }
   .btn-add:hover { opacity: 0.9; }
 
-  @keyframes fadeUp {
+  /* ── DRAG AND DROP ── */
+  .accordion-item {
+    border-bottom: 1px solid var(--border);
+    animation: fadeUp 0.4s ease both;
+    transition: opacity 0.2s, transform 0.2s;
+  }
+  .accordion-item.dragging {
+    opacity: 0.4;
+    transform: scale(0.98);
+  }
+  .accordion-item.drag-over {
+    border-top: 2px solid var(--accent);
+  }
+  body.edit-mode .acc-drag-handle {
+    display: flex;
+  }
+  .acc-drag-handle {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    color: var(--text-muted);
+    font-size: 1rem;
+    cursor: grab;
+    flex-shrink: 0;
+    opacity: 0.5;
+    transition: opacity 0.2s;
+  }
+  .acc-drag-handle:hover { opacity: 1; color: var(--accent); }
+
+  body.edit-mode .video-drag-handle {
+    display: flex;
+  }
+  .video-drag-handle {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    color: var(--text-muted);
+    font-size: 0.9rem;
+    cursor: grab;
+    flex-shrink: 0;
+    opacity: 0.5;
+    transition: opacity 0.2s;
+  }
+  .video-drag-handle:hover { opacity: 1; color: var(--accent); }
+  .video-item.dragging-video {
+    opacity: 0.4;
+    transform: scale(0.97);
+  }
+  .video-item.drag-over-video {
+    border-top: 2px solid var(--accent);
+  }
+  .video-item.drag-highlight,
+  .accordion-item.drag-highlight {
+    border-top: 2px solid var(--accent) !important;
+  }
+  .add-module-row {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 16px;
+    margin-top: 8px;
+    border-radius: 16px;
+    border: 2px dashed rgba(74,222,74,0.3);
+    background: rgba(74,222,74,0.02);
+    cursor: pointer;
+    color: var(--accent);
+    font-family: 'Syne', sans-serif;
+    font-size: 0.85rem;
+    font-weight: 600;
+    transition: all 0.2s;
+  }
+  .add-module-row:hover { background: rgba(74,222,74,0.07); border-color: var(--accent); }
+  body.edit-mode .add-module-row { display: flex; }
+
+  /* ── ADD MODULE MODAL extra fields ── */
+  .modal-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0 12px; }
+  .modal-full { grid-column: 1 / -1; }
     from { opacity: 0; transform: translateY(16px); }
     to { opacity: 1; transform: translateY(0); }
   }
@@ -975,6 +1050,7 @@
       <!-- Each accordion item: data-videos carries comma-separated video titles/durations -->
       <div class="accordion-item">
         <button class="accordion-trigger" onclick="toggleAccordion(this)">
+          <div class="acc-drag-handle" title="Arrastar">⠿</div>
           <span class="acc-number">01</span>
           <div class="acc-icon">🫁</div>
           <div class="acc-info">
@@ -990,6 +1066,7 @@
           <div class="accordion-content">
             <ul class="video-list" data-list="list-1">
               <li class="video-item" onclick="togglePlayer(this, '1D9tpqnNlSwAJSA5kZjLgkmx5AfM2DC6-')">
+      <div class="video-drag-handle" title="Arrastar">⠿</div>
                 <div class="video-play"><svg viewBox="0 0 12 12"><path d="M3 2l7 4-7 4V2z"/></svg></div>
                 <div class="video-info"><div class="video-title" data-fid="fid-3">Vídeo 1 — Pneumonia adquirida em comunidade</div><div class="video-duration" data-fid="fid-4">▶ Clique para assistir</div></div>
                 <span class="video-badge">VÍDEO</span><button class="done-btn" onclick="toggleDone(event,this)">✓</button>
@@ -1000,6 +1077,7 @@
                 <iframe src="" allowfullscreen allow="autoplay"></iframe>
               </div>
               <li class="video-item" onclick="togglePlayer(this, '19iGWCx1OPXczxQbB-B5ZZoBRwYHN34Qg')">
+      <div class="video-drag-handle" title="Arrastar">⠿</div>
                 <div class="video-play"><svg viewBox="0 0 12 12"><path d="M3 2l7 4-7 4V2z"/></svg></div>
                 <div class="video-info"><div class="video-title" data-fid="fid-5">Vídeo 2 — Pneumonia adquirida em comunidade</div><div class="video-duration" data-fid="fid-6">▶ Clique para assistir</div></div>
               <span class="video-badge">VÍDEO</span><button class="done-btn" onclick="toggleDone(event,this)">✓</button>
@@ -1010,6 +1088,7 @@
                 <iframe src="" allowfullscreen allow="autoplay"></iframe>
               </div>
               <li class="video-item" onclick="togglePlayer(this, 'pdf-1QtZh48FVVBb--1PgYT4YXJ60vMrvRnBf')" style="cursor:pointer;">
+      <div class="video-drag-handle" title="Arrastar">⠿</div>
                 <div class="video-play" style="background:rgba(74,222,74,0.07);"><svg viewBox="0 0 12 12" style="fill:var(--accent)"><path d="M2 1h8v1H9v8H3V2H2V1zm1 1v7h6V2H3zm1 1h4v1H4V3zm0 2h4v1H4V5zm0 2h3v1H4V7z"/></svg></div>
                 <div class="video-info"><div class="video-title" data-fid="fid-7">📄 PDF PNEUMONIA</div><div class="video-duration" data-fid="fid-8">▶ Clique para abrir</div></div>
                 <span class="video-badge">PDF</span><button class="done-btn" onclick="toggleDone(event,this)">✓</button>
@@ -1030,6 +1109,7 @@
 
       <div class="accordion-item">
         <button class="accordion-trigger" onclick="toggleAccordion(this)">
+          <div class="acc-drag-handle" title="Arrastar">⠿</div>
           <span class="acc-number">02</span>
           <div class="acc-icon">🩸</div>
           <div class="acc-info">
@@ -1045,6 +1125,7 @@
           <div class="accordion-content">
             <ul class="video-list" data-list="list-2">
               <li class="video-item" onclick="togglePlayer(this, '1IC63BcE89Vt6K-x9VgEiNV4wGiqgH4RZ')">
+      <div class="video-drag-handle" title="Arrastar">⠿</div>
                 <div class="video-play"><svg viewBox="0 0 12 12"><path d="M3 2l7 4-7 4V2z"/></svg></div>
                 <div class="video-info"><div class="video-title" data-fid="fid-11">Vídeo 1 — Anemias carenciais (ferropriva e megaloblástica)</div><div class="video-duration" data-fid="fid-12">▶ Clique para assistir</div></div>
                 <span class="video-badge">VÍDEO</span><button class="done-btn" onclick="toggleDone(event,this)">✓</button>
@@ -1055,6 +1136,7 @@
                 <iframe src="" allowfullscreen allow="autoplay"></iframe>
               </div>
               <li class="video-item" onclick="togglePlayer(this, '1djiNMHgCaBjkRD8LvpvFetVTON45Mj35')">
+      <div class="video-drag-handle" title="Arrastar">⠿</div>
                 <div class="video-play"><svg viewBox="0 0 12 12"><path d="M3 2l7 4-7 4V2z"/></svg></div>
                 <div class="video-info"><div class="video-title" data-fid="fid-13">Vídeo 2 — Anemias carenciais (ferropriva e megaloblástica)</div><div class="video-duration" data-fid="fid-14">▶ Clique para assistir</div></div>
               <span class="video-badge">VÍDEO</span><button class="done-btn" onclick="toggleDone(event,this)">✓</button>
@@ -1065,6 +1147,7 @@
                 <iframe src="" allowfullscreen allow="autoplay"></iframe>
               </div>
               <li class="video-item" onclick="togglePlayer(this, 'pdf-1JWpoohkMjG5fIClYJTap4DYYW85kvd3T')" style="cursor:pointer;">
+      <div class="video-drag-handle" title="Arrastar">⠿</div>
                 <div class="video-play" style="background:rgba(74,222,74,0.07);"><svg viewBox="0 0 12 12" style="fill:var(--accent)"><path d="M2 1h8v1H9v8H3V2H2V1zm1 1v7h6V2H3zm1 1h4v1H4V3zm0 2h4v1H4V5zm0 2h3v1H4V7z"/></svg></div>
                 <div class="video-info"><div class="video-title" data-fid="fid-15">📄 PDF ANEMIAS CARENCIAIS</div><div class="video-duration" data-fid="fid-16">▶ Clique para abrir</div></div>
                 <span class="video-badge">PDF</span><button class="done-btn" onclick="toggleDone(event,this)">✓</button>
@@ -1085,6 +1168,7 @@
 
       <div class="accordion-item">
         <button class="accordion-trigger" onclick="toggleAccordion(this)">
+          <div class="acc-drag-handle" title="Arrastar">⠿</div>
           <span class="acc-number">03</span>
           <div class="acc-icon">🔴</div>
           <div class="acc-info">
@@ -1100,18 +1184,21 @@
           <div class="accordion-content">
             <ul class="video-list" data-list="list-3">
               <li class="video-item">
+      <div class="video-drag-handle" title="Arrastar">⠿</div>
                 <div class="video-play"><svg viewBox="0 0 12 12"><path d="M3 2l7 4-7 4V2z"/></svg></div>
                 <div class="video-info"><div class="video-title" data-fid="fid-19">Anemia Hemolítica Autoimune: Mecanismo e Terapêutica</div><div class="video-duration" data-fid="fid-20">16 min</div></div>
                 <span class="video-badge">VÍDEO</span><button class="done-btn" onclick="toggleDone(event,this)">✓</button>
               <button class="edit-remove-btn" onclick="removeItem(event,this)" title="Remover">🗑</button>
               </li>
               <li class="video-item">
+      <div class="video-drag-handle" title="Arrastar">⠿</div>
                 <div class="video-play"><svg viewBox="0 0 12 12"><path d="M3 2l7 4-7 4V2z"/></svg></div>
                 <div class="video-info"><div class="video-title" data-fid="fid-21">Doença Falciforme: Crises e Complicações</div><div class="video-duration" data-fid="fid-22">17 min</div></div>
               <span class="video-badge">VÍDEO</span><button class="done-btn" onclick="toggleDone(event,this)">✓</button>
               <button class="edit-remove-btn" onclick="removeItem(event,this)" title="Remover">🗑</button>
               </li>
               <li class="video-item">
+      <div class="video-drag-handle" title="Arrastar">⠿</div>
                 <div class="video-play"><svg viewBox="0 0 12 12"><path d="M3 2l7 4-7 4V2z"/></svg></div>
                 <div class="video-info"><div class="video-title" data-fid="fid-23">Talassemias: Alpha e Beta</div><div class="video-duration" data-fid="fid-24">12 min</div></div>
               <span class="video-badge">VÍDEO</span><button class="done-btn" onclick="toggleDone(event,this)">✓</button>
@@ -1127,6 +1214,7 @@
 
       <div class="accordion-item">
         <button class="accordion-trigger" onclick="toggleAccordion(this)">
+          <div class="acc-drag-handle" title="Arrastar">⠿</div>
           <span class="acc-number">04</span>
           <div class="acc-icon">🦟</div>
           <div class="acc-info">
@@ -1142,12 +1230,14 @@
           <div class="accordion-content">
             <ul class="video-list" data-list="list-4">
               <li class="video-item">
+      <div class="video-drag-handle" title="Arrastar">⠿</div>
                 <div class="video-play"><svg viewBox="0 0 12 12"><path d="M3 2l7 4-7 4V2z"/></svg></div>
                 <div class="video-info"><div class="video-title" data-fid="fid-27">Ciclo do Plasmodium e Manifestações Clínicas</div><div class="video-duration" data-fid="fid-28">14 min</div></div>
                 <span class="video-badge">VÍDEO</span><button class="done-btn" onclick="toggleDone(event,this)">✓</button>
               <button class="edit-remove-btn" onclick="removeItem(event,this)" title="Remover">🗑</button>
               </li>
               <li class="video-item">
+      <div class="video-drag-handle" title="Arrastar">⠿</div>
                 <div class="video-play"><svg viewBox="0 0 12 12"><path d="M3 2l7 4-7 4V2z"/></svg></div>
                 <div class="video-info"><div class="video-title" data-fid="fid-29">Diagnóstico, Tratamento e Prevenção</div><div class="video-duration" data-fid="fid-30">14 min</div></div>
               <span class="video-badge">VÍDEO</span><button class="done-btn" onclick="toggleDone(event,this)">✓</button>
@@ -1163,6 +1253,7 @@
 
       <div class="accordion-item">
         <button class="accordion-trigger" onclick="toggleAccordion(this)">
+          <div class="acc-drag-handle" title="Arrastar">⠿</div>
           <span class="acc-number">05</span>
           <div class="acc-icon">🌡️</div>
           <div class="acc-info">
@@ -1178,18 +1269,21 @@
           <div class="accordion-content">
             <ul class="video-list" data-list="list-5">
               <li class="video-item">
+      <div class="video-drag-handle" title="Arrastar">⠿</div>
                 <div class="video-play"><svg viewBox="0 0 12 12"><path d="M3 2l7 4-7 4V2z"/></svg></div>
                 <div class="video-info"><div class="video-title" data-fid="fid-33">Dengue: Classificação, Sinais de Alarme e Manejo</div><div class="video-duration" data-fid="fid-34">16 min</div></div>
                 <span class="video-badge">VÍDEO</span><button class="done-btn" onclick="toggleDone(event,this)">✓</button>
               <button class="edit-remove-btn" onclick="removeItem(event,this)" title="Remover">🗑</button>
               </li>
               <li class="video-item">
+      <div class="video-drag-handle" title="Arrastar">⠿</div>
                 <div class="video-play"><svg viewBox="0 0 12 12"><path d="M3 2l7 4-7 4V2z"/></svg></div>
                 <div class="video-info"><div class="video-title" data-fid="fid-35">Zika Vírus e Síndrome Congênita</div><div class="video-duration" data-fid="fid-36">12 min</div></div>
               <span class="video-badge">VÍDEO</span><button class="done-btn" onclick="toggleDone(event,this)">✓</button>
               <button class="edit-remove-btn" onclick="removeItem(event,this)" title="Remover">🗑</button>
               </li>
               <li class="video-item">
+      <div class="video-drag-handle" title="Arrastar">⠿</div>
                 <div class="video-play"><svg viewBox="0 0 12 12"><path d="M3 2l7 4-7 4V2z"/></svg></div>
                 <div class="video-info"><div class="video-title" data-fid="fid-37">Chikungunya: Artralgia Persistente e Tratamento</div><div class="video-duration" data-fid="fid-38">12 min</div></div>
               <span class="video-badge">VÍDEO</span><button class="done-btn" onclick="toggleDone(event,this)">✓</button>
@@ -1205,6 +1299,7 @@
 
       <div class="accordion-item">
         <button class="accordion-trigger" onclick="toggleAccordion(this)">
+          <div class="acc-drag-handle" title="Arrastar">⠿</div>
           <span class="acc-number">06</span>
           <div class="acc-icon">🧬</div>
           <div class="acc-info">
@@ -1220,18 +1315,21 @@
           <div class="accordion-content">
             <ul class="video-list" data-list="list-6">
               <li class="video-item">
+      <div class="video-drag-handle" title="Arrastar">⠿</div>
                 <div class="video-play"><svg viewBox="0 0 12 12"><path d="M3 2l7 4-7 4V2z"/></svg></div>
                 <div class="video-info"><div class="video-title" data-fid="fid-41">Hemofilia A e B: Fisiopatologia e Genética</div><div class="video-duration" data-fid="fid-42">13 min</div></div>
                 <span class="video-badge">VÍDEO</span><button class="done-btn" onclick="toggleDone(event,this)">✓</button>
               <button class="edit-remove-btn" onclick="removeItem(event,this)" title="Remover">🗑</button>
               </li>
               <li class="video-item">
+      <div class="video-drag-handle" title="Arrastar">⠿</div>
                 <div class="video-play"><svg viewBox="0 0 12 12"><path d="M3 2l7 4-7 4V2z"/></svg></div>
                 <div class="video-info"><div class="video-title" data-fid="fid-43">Doença de von Willebrand</div><div class="video-duration" data-fid="fid-44">11 min</div></div>
               <span class="video-badge">VÍDEO</span><button class="done-btn" onclick="toggleDone(event,this)">✓</button>
               <button class="edit-remove-btn" onclick="removeItem(event,this)" title="Remover">🗑</button>
               </li>
               <li class="video-item">
+      <div class="video-drag-handle" title="Arrastar">⠿</div>
                 <div class="video-play"><svg viewBox="0 0 12 12"><path d="M3 2l7 4-7 4V2z"/></svg></div>
                 <div class="video-info"><div class="video-title" data-fid="fid-45">Manejo das Crises Hemorrágicas</div><div class="video-duration" data-fid="fid-46">12 min</div></div>
               <span class="video-badge">VÍDEO</span><button class="done-btn" onclick="toggleDone(event,this)">✓</button>
@@ -1247,6 +1345,7 @@
 
       <div class="accordion-item">
         <button class="accordion-trigger" onclick="toggleAccordion(this)">
+          <div class="acc-drag-handle" title="Arrastar">⠿</div>
           <span class="acc-number">07</span>
           <div class="acc-icon">🔬</div>
           <div class="acc-info">
@@ -1262,18 +1361,21 @@
           <div class="accordion-content">
             <ul class="video-list" data-list="list-7">
               <li class="video-item">
+      <div class="video-drag-handle" title="Arrastar">⠿</div>
                 <div class="video-play"><svg viewBox="0 0 12 12"><path d="M3 2l7 4-7 4V2z"/></svg></div>
                 <div class="video-info"><div class="video-title" data-fid="fid-49">Leucemias Agudas: LLA e LMA</div><div class="video-duration" data-fid="fid-50">18 min</div></div>
                 <span class="video-badge">VÍDEO</span><button class="done-btn" onclick="toggleDone(event,this)">✓</button>
               <button class="edit-remove-btn" onclick="removeItem(event,this)" title="Remover">🗑</button>
               </li>
               <li class="video-item">
+      <div class="video-drag-handle" title="Arrastar">⠿</div>
                 <div class="video-play"><svg viewBox="0 0 12 12"><path d="M3 2l7 4-7 4V2z"/></svg></div>
                 <div class="video-info"><div class="video-title" data-fid="fid-51">Leucemias Crônicas: LLC e LMC</div><div class="video-duration" data-fid="fid-52">16 min</div></div>
               <span class="video-badge">VÍDEO</span><button class="done-btn" onclick="toggleDone(event,this)">✓</button>
               <button class="edit-remove-btn" onclick="removeItem(event,this)" title="Remover">🗑</button>
               </li>
               <li class="video-item">
+      <div class="video-drag-handle" title="Arrastar">⠿</div>
                 <div class="video-play"><svg viewBox="0 0 12 12"><path d="M3 2l7 4-7 4V2z"/></svg></div>
                 <div class="video-info"><div class="video-title" data-fid="fid-53">Linfoma de Hodgkin e Não-Hodgkin</div><div class="video-duration" data-fid="fid-54">16 min</div></div>
               <span class="video-badge">VÍDEO</span><button class="done-btn" onclick="toggleDone(event,this)">✓</button>
@@ -1289,6 +1391,7 @@
 
       <div class="accordion-item">
         <button class="accordion-trigger" onclick="toggleAccordion(this)">
+          <div class="acc-drag-handle" title="Arrastar">⠿</div>
           <span class="acc-number">08</span>
           <div class="acc-icon">🩹</div>
           <div class="acc-info">
@@ -1304,18 +1407,21 @@
           <div class="accordion-content">
             <ul class="video-list" data-list="list-8">
               <li class="video-item">
+      <div class="video-drag-handle" title="Arrastar">⠿</div>
                 <div class="video-play"><svg viewBox="0 0 12 12"><path d="M3 2l7 4-7 4V2z"/></svg></div>
                 <div class="video-info"><div class="video-title" data-fid="fid-57">Impetigo: Tipos Bolhoso e Não-Bolhoso</div><div class="video-duration" data-fid="fid-58">10 min</div></div>
                 <span class="video-badge">VÍDEO</span><button class="done-btn" onclick="toggleDone(event,this)">✓</button>
               <button class="edit-remove-btn" onclick="removeItem(event,this)" title="Remover">🗑</button>
               </li>
               <li class="video-item">
+      <div class="video-drag-handle" title="Arrastar">⠿</div>
                 <div class="video-play"><svg viewBox="0 0 12 12"><path d="M3 2l7 4-7 4V2z"/></svg></div>
                 <div class="video-info"><div class="video-title" data-fid="fid-59">Erisipela vs Celulite: Como Diferenciar</div><div class="video-duration" data-fid="fid-60">12 min</div></div>
               <span class="video-badge">VÍDEO</span><button class="done-btn" onclick="toggleDone(event,this)">✓</button>
               <button class="edit-remove-btn" onclick="removeItem(event,this)" title="Remover">🗑</button>
               </li>
               <li class="video-item">
+      <div class="video-drag-handle" title="Arrastar">⠿</div>
                 <div class="video-play"><svg viewBox="0 0 12 12"><path d="M3 2l7 4-7 4V2z"/></svg></div>
                 <div class="video-info"><div class="video-title" data-fid="fid-61">Antibioticoterapia nas Piodermites</div><div class="video-duration" data-fid="fid-62">11 min</div></div>
               <span class="video-badge">VÍDEO</span><button class="done-btn" onclick="toggleDone(event,this)">✓</button>
@@ -1331,6 +1437,7 @@
 
       <div class="accordion-item">
         <button class="accordion-trigger" onclick="toggleAccordion(this)">
+          <div class="acc-drag-handle" title="Arrastar">⠿</div>
           <span class="acc-number">09</span>
           <div class="acc-icon">🌿</div>
           <div class="acc-info">
@@ -1346,12 +1453,14 @@
           <div class="accordion-content">
             <ul class="video-list" data-list="list-9">
               <li class="video-item">
+      <div class="video-drag-handle" title="Arrastar">⠿</div>
                 <div class="video-play"><svg viewBox="0 0 12 12"><path d="M3 2l7 4-7 4V2z"/></svg></div>
                 <div class="video-info"><div class="video-title" data-fid="fid-65">Fisiopatologia e Critérios Diagnósticos</div><div class="video-duration" data-fid="fid-66">13 min</div></div>
                 <span class="video-badge">VÍDEO</span><button class="done-btn" onclick="toggleDone(event,this)">✓</button>
               <button class="edit-remove-btn" onclick="removeItem(event,this)" title="Remover">🗑</button>
               </li>
               <li class="video-item">
+      <div class="video-drag-handle" title="Arrastar">⠿</div>
                 <div class="video-play"><svg viewBox="0 0 12 12"><path d="M3 2l7 4-7 4V2z"/></svg></div>
                 <div class="video-info"><div class="video-title" data-fid="fid-67">Tratamento Escalonado e Biológicos</div><div class="video-duration" data-fid="fid-68">13 min</div></div>
               <span class="video-badge">VÍDEO</span><button class="done-btn" onclick="toggleDone(event,this)">✓</button>
@@ -1367,6 +1476,7 @@
 
       <div class="accordion-item">
         <button class="accordion-trigger" onclick="toggleAccordion(this)">
+          <div class="acc-drag-handle" title="Arrastar">⠿</div>
           <span class="acc-number">10</span>
           <div class="acc-icon">⚕️</div>
           <div class="acc-info">
@@ -1382,18 +1492,21 @@
           <div class="accordion-content">
             <ul class="video-list" data-list="list-10">
               <li class="video-item">
+      <div class="video-drag-handle" title="Arrastar">⠿</div>
                 <div class="video-play"><svg viewBox="0 0 12 12"><path d="M3 2l7 4-7 4V2z"/></svg></div>
                 <div class="video-info"><div class="video-title" data-fid="fid-71">Classificação Operacional e Formas Clínicas</div><div class="video-duration" data-fid="fid-72">13 min</div></div>
                 <span class="video-badge">VÍDEO</span><button class="done-btn" onclick="toggleDone(event,this)">✓</button>
               <button class="edit-remove-btn" onclick="removeItem(event,this)" title="Remover">🗑</button>
               </li>
               <li class="video-item">
+      <div class="video-drag-handle" title="Arrastar">⠿</div>
                 <div class="video-play"><svg viewBox="0 0 12 12"><path d="M3 2l7 4-7 4V2z"/></svg></div>
                 <div class="video-info"><div class="video-title" data-fid="fid-73">Diagnóstico: Baciloscopia e Hansenina</div><div class="video-duration" data-fid="fid-74">11 min</div></div>
               <span class="video-badge">VÍDEO</span><button class="done-btn" onclick="toggleDone(event,this)">✓</button>
               <button class="edit-remove-btn" onclick="removeItem(event,this)" title="Remover">🗑</button>
               </li>
               <li class="video-item">
+      <div class="video-drag-handle" title="Arrastar">⠿</div>
                 <div class="video-play"><svg viewBox="0 0 12 12"><path d="M3 2l7 4-7 4V2z"/></svg></div>
                 <div class="video-info"><div class="video-title" data-fid="fid-75">Poliquimioterapia e Reações Hansênicas</div><div class="video-duration" data-fid="fid-76">11 min</div></div>
               <span class="video-badge">VÍDEO</span><button class="done-btn" onclick="toggleDone(event,this)">✓</button>
@@ -1408,9 +1521,37 @@
       </div>
 
     </div><!-- /accordion-list -->
+    <div class="add-module-row" onclick="openAddModuleModal()">
+      ＋ Adicionar novo módulo
+    </div>
   </div><!-- /badge-card -->
 
 </main>
+
+<!-- ADD MODULE MODAL -->
+<div class="add-modal-overlay" id="addModuleModal">
+  <div class="add-modal">
+    <h3>📚 Novo módulo</h3>
+    <div class="modal-grid">
+      <div class="modal-full">
+        <label>Título do módulo</label>
+        <input id="modTitle" type="text" placeholder="Ex: Insuficiência Cardíaca">
+      </div>
+      <div>
+        <label>Especialidade</label>
+        <input id="modSpec" type="text" placeholder="Ex: Cardiologia">
+      </div>
+      <div>
+        <label>Ícone (emoji)</label>
+        <input id="modIcon" type="text" placeholder="Ex: ❤️" maxlength="4">
+      </div>
+    </div>
+    <div class="add-modal-btns">
+      <button class="btn-cancel" onclick="closeAddModuleModal()">Cancelar</button>
+      <button class="btn-add" onclick="confirmAddModule()">Criar módulo</button>
+    </div>
+  </div>
+</div>
 
 <!-- ADD ITEM MODAL -->
 <div class="add-modal-overlay" id="addModal">
@@ -1441,8 +1582,177 @@
 <script>
 
   /* ══════════════════════════════
-     EDIT MODE
+     DRAG AND DROP
   ══════════════════════════════ */
+  let _dragSrc = null;
+  let _dragType = null; // 'module' or 'video'
+
+  function initDragDrop() {}
+
+  function setDraggable(enabled) {
+    if (enabled) {
+      // Modules
+      document.querySelectorAll('.accordion-item').forEach(item => {
+        const handle = item.querySelector('.acc-drag-handle');
+        if (handle) addDragHandle(handle, item, 'module');
+      });
+      // Videos
+      document.querySelectorAll('.video-item').forEach(item => {
+        const handle = item.querySelector('.video-drag-handle');
+        if (handle) addDragHandle(handle, item, 'video');
+      });
+    } else {
+      document.querySelectorAll('[data-drag-init]').forEach(el => {
+        const clone = el.cloneNode(true);
+        el.parentNode.replaceChild(clone, el);
+      });
+    }
+  }
+
+  function addDragHandle(handle, item, type) {
+    if (handle.dataset.dragInit) return;
+    handle.dataset.dragInit = '1';
+
+    handle.addEventListener('mousedown', e => {
+      e.preventDefault();
+      e.stopPropagation();
+
+      _dragSrc = item;
+      _dragType = type;
+
+      const parent = item.parentNode;
+      const items = type === 'module'
+        ? [...parent.querySelectorAll(':scope > .accordion-item')]
+        : [...parent.querySelectorAll(':scope > .video-item')];
+
+      // Ghost element
+      const ghost = item.cloneNode(true);
+      ghost.style.cssText = `
+        position:fixed; pointer-events:none; z-index:9999;
+        width:${item.offsetWidth}px; opacity:0.85;
+        border-radius:12px; background:var(--bg2);
+        border:1px solid var(--accent);
+        box-shadow:0 8px 30px rgba(0,0,0,0.5);
+        transform:scale(1.02);
+      `;
+      document.body.appendChild(ghost);
+      item.style.opacity = '0.3';
+
+      const rect = item.getBoundingClientRect();
+      const offsetY = e.clientY - rect.top;
+      const offsetX = e.clientX - rect.left;
+
+      ghost.style.left = rect.left + 'px';
+      ghost.style.top = rect.top + 'px';
+
+      function onMove(e) {
+        ghost.style.left = (e.clientX - offsetX) + 'px';
+        ghost.style.top = (e.clientY - offsetY) + 'px';
+
+        // Find target
+        ghost.style.display = 'none';
+        const el = document.elementFromPoint(e.clientX, e.clientY);
+        ghost.style.display = '';
+
+        const selector = type === 'module' ? '.accordion-item' : '.video-item:not(.edit-add-row)';
+        const target = el ? el.closest(selector) : null;
+
+        document.querySelectorAll('.drag-highlight').forEach(x => x.classList.remove('drag-highlight'));
+
+        if (target && target !== _dragSrc) {
+          const targetParent = target.parentNode;
+          const srcParent = _dragSrc.parentNode;
+          if (targetParent === srcParent) {
+            target.classList.add('drag-highlight');
+            const targetRect = target.getBoundingClientRect();
+            if (e.clientY < targetRect.top + targetRect.height / 2) {
+              srcParent.insertBefore(_dragSrc, target);
+            } else {
+              srcParent.insertBefore(_dragSrc, target.nextSibling);
+            }
+          }
+        }
+      }
+
+      function onUp() {
+        document.removeEventListener('mousemove', onMove);
+        document.removeEventListener('mouseup', onUp);
+        ghost.remove();
+        item.style.opacity = '';
+        document.querySelectorAll('.drag-highlight').forEach(x => x.classList.remove('drag-highlight'));
+        _dragSrc = null;
+        _dragType = null;
+      }
+
+      document.addEventListener('mousemove', onMove);
+      document.addEventListener('mouseup', onUp);
+    });
+  }
+
+  /* ══════════════════════════════
+     ADD MODULE MODAL
+  ══════════════════════════════ */
+  function openAddModuleModal() {
+    document.getElementById('addModuleModal').classList.add('active');
+    document.getElementById('modTitle').value = '';
+    document.getElementById('modSpec').value = '';
+    document.getElementById('modIcon').value = '';
+  }
+
+  function closeAddModuleModal() {
+    document.getElementById('addModuleModal').classList.remove('active');
+  }
+
+  function confirmAddModule() {
+    const title = document.getElementById('modTitle').value.trim();
+    const spec = document.getElementById('modSpec').value.trim() || 'Geral';
+    const icon = document.getElementById('modIcon').value.trim() || '📖';
+    if (!title) { alert('Digite o título do módulo!'); return; }
+
+    const list = document.getElementById('accordionList');
+    const num = list.querySelectorAll('.accordion-item').length + 1;
+    const numStr = num.toString().padStart(2, '0');
+    const uid = 'mod-' + Date.now();
+
+    const item = document.createElement('div');
+    item.className = 'accordion-item';
+    item.dataset.added = '1';
+    item.dataset.modId = uid;
+    item.setAttribute('draggable', 'false');
+    item.innerHTML = `
+      <button class="accordion-trigger" onclick="toggleAccordion(this)">
+        <div class="acc-drag-handle" title="Arrastar">⠿</div>
+        <span class="acc-number">${numStr}</span>
+        <div class="acc-icon">${icon}</div>
+        <div class="acc-info">
+          <div class="acc-title" data-fid="mod-title-${uid}">${title}</div>
+          <div class="acc-subtitle" data-fid="mod-spec-${uid}">${spec} · 0 vídeos</div>
+        </div>
+        <div class="acc-meta">
+          <span class="acc-duration">—</span>
+          <div class="acc-chevron"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></div>
+        </div>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-content">
+          <ul class="video-list" data-list="${uid}">
+            <li class="edit-add-row" onclick="openAddModal(this.closest('.video-list'))">
+              ＋ Adicionar vídeo ou PDF
+            </li>
+          </ul>
+        </div>
+      </div>
+    `;
+
+    list.appendChild(item);
+    closeAddModuleModal();
+    updateCounter();
+
+    // Open the new accordion
+    const trigger = item.querySelector('.accordion-trigger');
+    trigger.classList.add('open');
+    item.querySelector('.accordion-body').classList.add('open');
+  }
   function toggleEditMode() {
     const body = document.body;
     const editBtn = document.getElementById('editBtn');
@@ -1457,13 +1767,15 @@
       el.contentEditable = isEditing ? 'true' : 'false';
     });
 
-    // Show/hide add-item buttons inside accordions
     document.querySelectorAll('.edit-add-row').forEach(el => {
       el.style.display = isEditing ? 'flex' : 'none';
     });
     document.querySelectorAll('.edit-remove-btn').forEach(el => {
       el.style.display = isEditing ? 'flex' : 'none';
     });
+
+    // Enable drag and drop
+    setDraggable(isEditing);
 
     editBtn.classList.toggle('active', isEditing);
     editBtn.title = isEditing ? 'Sair sem salvar' : 'Modo edição';
@@ -1704,6 +2016,7 @@
 
   window.addEventListener('load', () => {
     setTimeout(() => { document.getElementById('progressFill').style.width = '0%'; }, 500);
+    initDragDrop();
   });
 </script>
 </body>
