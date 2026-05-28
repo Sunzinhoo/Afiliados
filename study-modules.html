@@ -2634,9 +2634,10 @@ O campo "correct" é o índice 0-3. Crie 6 questões variando os tipos acima sob
   window.saveGeminiKey = function() {
     const val = document.getElementById('geminiKeyInput').value.trim();
     if (!val.startsWith('AIza')) { alert('Chave inválida. Deve começar com AIza'); return; }
+    localStorage.removeItem('_geminiKey');
     localStorage.setItem('_geminiKey', val);
-    document.getElementById('geminiModal').style.display = 'none';
-    alert('✅ Chave salva! Tente gerar o quiz novamente.');
+    document.getElementById('geminiModal').remove();
+    alert('✅ Chave atualizada! Tente gerar o quiz novamente.');
   };
 
   function renderQuizPreview(questions, pdfTitle) {
