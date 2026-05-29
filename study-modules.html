@@ -1228,6 +1228,13 @@
   }
 
   /* ── QUIZ INLINE BLOCK (embedded in page) ── */
+  .quiz-inline-player {
+    background: #0d1a0d;
+    border: 1px solid #a855f733;
+    border-radius: 12px;
+    margin: 4px 0 4px 48px;
+    overflow: hidden;
+  }
   .quiz-inline {
     margin-top: 6px;
     border-radius: 14px;
@@ -1399,7 +1406,7 @@
 <header>
   <div class="logo">
     <div class="logo-dot"></div>
-    MedStudy
+    Acervo Celo
   </div>
   <nav class="nav-pill">
     <a href="#" class="active">Módulos</a>
@@ -1414,8 +1421,8 @@
 
   <!-- PAGE TITLE -->
   <div class="page-title">
-    <div class="eyebrow" contenteditable="false">Trilha de estudos</div>
-    <h1><span contenteditable="false">Sua jornada </span><span contenteditable="false" style="color:var(--accent)">médica</span><br><span contenteditable="false">começa aqui.</span></h1>
+    <div class="eyebrow" contenteditable="false">3° período</div>
+    <h1><span contenteditable="false">3° </span><span contenteditable="false" style="color:var(--accent)">período</span></h1>
     <p contenteditable="false">Videoaulas organizadas por tema para fixar o conteúdo de forma objetiva e eficiente.</p>
     <span class="edit-hint">✏️ clique para editar qualquer texto</span>
   </div>
@@ -2666,28 +2673,63 @@ O campo "correct" é o índice 0-3. Crie 6 questões variando os tipos acima sob
 
     if (!questions || !fileId) return;
 
-    // Remove existing quiz block for this PDF
+    // Remove existing quiz item for this PDF
     const existing = document.querySelector(`.quiz-inline[data-quiz-for="${fileId}"]`);
     if (existing) existing.remove();
 
-    // Find the player-wrap or li to insert after
+    // Find the li item of the PDF to insert after
+    const pdfLi = document.querySelector(`li[data-file-id="${fileId}"]`);
     const playerWrap = document.getElementById('player-' + fileId);
-    const li = document.querySelector(`[data-file-id="${fileId}"]`) ||
-               document.querySelector(`[onclick*="${fileId}"]`);
-    const insertAfter = playerWrap || li;
+    const insertAfter = playerWrap || pdfLi;
     if (!insertAfter) return;
 
-    const block = document.createElement('div');
-    block.className = 'quiz-inline';
-    block.dataset.quizFor = fileId;
-    block.dataset.quizData = JSON.stringify(questions);
-    block.dataset.quizTitle = pdfTitle;
-    block.innerHTML = buildQuizInlineHTML(questions, pdfTitle, fileId);
+    // Build as a proper li item like video/pdf
+    const li = document.createElement('li');
+    li.className = 'video-item quiz-inline';
+    li.dataset.quizFor = fileId;
+    li.dataset.quizData = JSON.stringify(questions);
+    li.dataset.quizTitle = pdfTitle;
+    li.innerHTML = `
+      <div class="video-drag-handle" style="opacity:0;pointer-events:none;">⠿</div>
+      <div class="video-play" style="background:#a855f7;">
+        <svg viewBox="0 0 24 24" fill="white" width="14" height="14"><path d="M12 3a9 9 0 110 18A9 9 0 0112 3zm0 4a1 1 0 00-1 1v4a1 1 0 00.553.894l3 1.5a1 1 0 10.894-1.788L13 11.382V8a1 1 0 00-1-1z"/></svg>
+      </div>
+      <div class="video-info" onclick="openQuizFromBadge('${fileId}')" style="cursor:pointer;">
+        <div class="video-title">🧠 Quiz — ${pdfTitle}</div>
+        <div class="video-duration">▶ Clique para responder</div>
+      </div>
+      <span class="video-badge" style="background:#a855f7;color:#fff;">QUIZ</span>
+      <button class="done-btn" style="opacity:0;pointer-events:none;">✓</button>
+      <button class="edit-remove-btn" onclick="this.closest('.quiz-inline').remove()" title="Remover">🗑</button>
+    `;
 
-    insertAfter.insertAdjacentElement('afterend', block);
-    block.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    insertAfter.insertAdjacentElement('afterend', li);
+    li.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 
     closeQuizModal();
+  }
+
+  function openQuizFromBadge(fileId) {
+    const li = document.querySelector(`.quiz-inline[data-quiz-for="${fileId}"]`);
+    if (!li) return;
+    const questions = JSON.parse(li.dataset.quizData);
+    const pdfTitle = li.dataset.quizTitle;
+
+    // Check if quiz player is already open
+    const existingPlayer = document.getElementById('quiz-player-' + fileId);
+    if (existingPlayer) { existingPlayer.remove(); return; }
+
+    const player = document.createElement('div');
+    player.id = 'quiz-player-' + fileId;
+    player.className = 'quiz-inline-player';
+    player.dataset.quizData = JSON.stringify(questions);
+    player.dataset.quizTitle = pdfTitle;
+    player._answered = {};
+    player._score = 0;
+    player.innerHTML = buildQuizInlineHTML(questions, pdfTitle, fileId);
+
+    li.insertAdjacentElement('afterend', player);
+    player.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   }
 
   function buildQuizInlineHTML(questions, pdfTitle, fileId) {
@@ -2720,7 +2762,7 @@ O campo "correct" é o índice 0-3. Crie 6 questões variando os tipos acima sob
 
   // Per-quiz state stored on the block element
   function answerInlineQuiz(btn, qi, oi, correct, fileId) {
-    const block = document.querySelector(`.quiz-inline[data-quiz-for="${fileId}"]`);
+    const block = document.getElementById('quiz-player-' + fileId) || document.querySelector(`.quiz-inline[data-quiz-for="${fileId}"]`);
     if (!block._answered) block._answered = {};
     if (!block._score) block._score = 0;
 
@@ -2745,7 +2787,7 @@ O campo "correct" é o índice 0-3. Crie 6 questões variando os tipos acima sob
   }
 
   function retryInlineQuiz(fileId) {
-    const block = document.querySelector(`.quiz-inline[data-quiz-for="${fileId}"]`);
+    const block = document.getElementById('quiz-player-' + fileId) || document.querySelector(`.quiz-inline[data-quiz-for="${fileId}"]`);
     const questions = JSON.parse(block.dataset.quizData);
     const pdfTitle = block.dataset.quizTitle;
     block._answered = {};
