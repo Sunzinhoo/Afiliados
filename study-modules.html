@@ -2560,7 +2560,7 @@ O campo "correct" é o índice 0-3. Crie 6 questões variando os tipos acima sob
         throw new Error('Configure sua chave Gemini gratuita primeiro.');
       }
 
-      const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${geminiKey}`;
+      const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiKey}`;
       const response = await fetch(geminiUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
