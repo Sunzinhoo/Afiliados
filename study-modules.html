@@ -100,25 +100,47 @@
   ══════════════════════════════════════════════ */
   window._saveToFirebase = async () => {
     try {
-      const modules = [];
-      document.querySelectorAll('#accordionList .accordion-item').forEach((item, idx) => {
-        const trigger  = item.querySelector('.accordion-trigger');
-        const uid      = item.dataset.modId || ('static-' + idx);
-        const title    = (trigger.querySelector('.acc-title')    || {}).textContent?.trim() || '';
-        const subtitle = (trigger.querySelector('.acc-subtitle') || {}).textContent?.trim() || '';
-        const icon     = (trigger.querySelector('.acc-icon')     || {}).textContent?.trim() || '📖';
-        const duration = (trigger.querySelector('.acc-duration') || {}).textContent?.trim() || '—';
-        const num      = (trigger.querySelector('.acc-number')   || {}).textContent?.trim() || String(idx+1).padStart(2,'0');
-        const videos   = [];
-        item.querySelectorAll('.video-item').forEach(li => {
-          const fileId = li.dataset.fileId || li.getAttribute('onclick')?.match(/'([^']+)'/)?.[1] || '';
-          if (!fileId) return;
-          const title  = (li.querySelector('.video-title') || {}).textContent?.trim() || '';
-          const type   = li.dataset.type || (fileId.startsWith('pdf-') ? 'pdf' : 'video');
-          const done   = li.classList.contains('done');
-          videos.push({ fileId, title, type, done });
+      // Save all badge cards
+      const badgeCards = [];
+      document.querySelectorAll('.badge-card').forEach((card, ci) => {
+        const header = card.querySelector('.badge-header');
+        const name     = card.querySelector('.badge-text h2')?.textContent?.trim() || '';
+        const subtitle = card.querySelector('.badge-text span')?.textContent?.trim() || '';
+        const icon     = card.querySelector('.badge-icon')?.textContent?.trim() || '🏅';
+        const collapsed = card.classList.contains('collapsed');
+        const accordionListEl = card.querySelector('.accordion-list');
+        const listId = accordionListEl?.id || ('acc-list-' + ci);
+
+        const modules = [];
+        card.querySelectorAll('.accordion-item').forEach((item, idx) => {
+          const trigger  = item.querySelector('.accordion-trigger');
+          const uid      = item.dataset.modId || (listId + '-mod-' + idx);
+          const title    = trigger.querySelector('.acc-title')?.textContent?.trim() || '';
+          const sub      = trigger.querySelector('.acc-subtitle')?.textContent?.trim() || '';
+          const ico      = trigger.querySelector('.acc-icon')?.textContent?.trim() || '📖';
+          const duration = trigger.querySelector('.acc-duration')?.textContent?.trim() || '—';
+          const num      = trigger.querySelector('.acc-number')?.textContent?.trim() || String(idx+1).padStart(2,'0');
+          const videos   = [];
+          item.querySelectorAll('.video-item:not(.quiz-inline)').forEach(li => {
+            const fileId = li.dataset.fileId || li.getAttribute('onclick')?.match(/'([^']+)'/)?.[1] || '';
+            if (!fileId) return;
+            const t    = li.querySelector('.video-title')?.textContent?.trim() || '';
+            const type = li.dataset.type || (fileId.startsWith('pdf-') ? 'pdf' : 'video');
+            const done = li.classList.contains('done');
+            videos.push({ fileId, title: t, type, done });
+          });
+          modules.push({ uid, num, title, subtitle: sub, icon: ico, duration, videos });
         });
-        modules.push({ uid, num, title, subtitle, icon, duration, videos });
+
+        const quizzes = [];
+        card.querySelectorAll('.quiz-inline').forEach(block => {
+          const fileId    = block.dataset.quizFor;
+          const quizData  = block.dataset.quizData;
+          const quizTitle = block.dataset.quizTitle;
+          if (fileId && quizData) quizzes.push({ fileId, quizData, quizTitle });
+        });
+
+        badgeCards.push({ name, subtitle, icon, collapsed, listId, modules, quizzes });
       });
 
       // Save top-level editable texts
@@ -128,16 +150,7 @@
         if (val) texts[el.dataset.fid] = val;
       });
 
-      // Save quizzes — each quiz-inline block embedded in the page
-      const quizzes = [];
-      document.querySelectorAll('.quiz-inline').forEach(block => {
-        const fileId    = block.dataset.quizFor;
-        const quizData  = block.dataset.quizData;
-        const quizTitle = block.dataset.quizTitle;
-        if (fileId && quizData) quizzes.push({ fileId, quizData, quizTitle });
-      });
-
-      await set(dbRef, { modules, texts, quizzes, v: 2 });
+      await set(dbRef, { badgeCards, texts, v: 3 });
       return true;
     } catch(e) {
       console.error('Firebase save error:', e);
@@ -176,55 +189,98 @@
         return;
       }
 
-      // v2 format — full rebuild from saved modules
-      if (data.modules && Array.isArray(data.modules) && data.modules.length > 0) {
-        const accordionList = document.getElementById('accordionList');
-        accordionList.innerHTML = '';
-        data.modules.forEach(m => {
-          const item = buildModule(m);
-          accordionList.appendChild(item);
+      // v3 format — full multi-badge-card rebuild
+      if (data.v >= 3 && data.badgeCards && Array.isArray(data.badgeCards)) {
+        const addBadgeRow = document.querySelector('.add-badge-row');
+        const main = addBadgeRow ? addBadgeRow.parentNode : document.querySelector('main');
+
+        // Remove existing badge cards
+        document.querySelectorAll('.badge-card').forEach(c => c.remove());
+
+        data.badgeCards.forEach(bc => {
+          const card = document.createElement('div');
+          card.className = 'badge-card' + (bc.collapsed ? ' collapsed' : '');
+          const listId = bc.listId || ('acc-list-' + Date.now());
+          card.innerHTML = `
+            <div class="badge-header" onclick="toggleBadgeCard(this)" style="cursor:pointer;">
+              <div class="badge-drag-handle" title="Arrastar">⠿</div>
+              <div class="badge-info">
+                <div class="badge-icon">${bc.icon || '🏅'}</div>
+                <div class="badge-text">
+                  <h2 contenteditable="false">${bc.name || ''}</h2>
+                  <span contenteditable="false">${bc.subtitle || ''}</span>
+                </div>
+              </div>
+              <div class="badge-chip">
+                <div class="chip chip-green">
+                  <svg width="7" height="7" viewBox="0 0 8 8" fill="none"><circle cx="4" cy="4" r="4" fill="#4ade4a"/></svg>
+                  Ativo
+                </div>
+                <div class="chip chip-count">0 / 0 concluídos</div>
+                <svg style="transition:transform 0.3s;margin-left:8px;" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+              </div>
+            </div>
+            <div class="progress-wrap" style="padding:16px 32px 0;">
+              <div class="progress-bar-track"><div class="progress-bar-fill" style="width:0%"></div></div>
+            </div>
+            <div class="accordion-list" id="${listId}"></div>
+            <div class="add-module-row" onclick="openAddModuleModal(this.closest('.badge-card').querySelector('.accordion-list'))">
+              ＋ Adicionar novo módulo
+            </div>
+          `;
+
+          const accordionListEl = card.querySelector('.accordion-list');
+          (bc.modules || []).forEach(m => {
+            const item = buildModule(m);
+            accordionListEl.appendChild(item);
+          });
+
+          // Restore quizzes for this card
+          if (bc.quizzes) {
+            bc.quizzes.forEach(({ fileId, quizData, quizTitle }) => {
+              try {
+                const pdfLi = card.querySelector(`li[data-file-id="${fileId}"]`);
+                const playerWrap = card.querySelector('#player-' + fileId);
+                const insertAfter = playerWrap || pdfLi;
+                if (!insertAfter) return;
+                const li = document.createElement('li');
+                li.className = 'video-item quiz-inline';
+                li.dataset.quizFor = fileId;
+                li.dataset.quizData = quizData;
+                li.dataset.quizTitle = quizTitle;
+                li.innerHTML = `
+                  <div class="video-drag-handle" style="opacity:0;pointer-events:none;">⠿</div>
+                  <div class="video-play" style="background:#a855f7;">
+                    <svg viewBox="0 0 24 24" fill="white" width="14" height="14"><path d="M12 3a9 9 0 110 18A9 9 0 0112 3zm0 4a1 1 0 00-1 1v4a1 1 0 00.553.894l3 1.5a1 1 0 10.894-1.788L13 11.382V8a1 1 0 00-1-1z"/></svg>
+                  </div>
+                  <div class="video-info" onclick="openQuizFromBadge('${fileId}')" style="cursor:pointer;">
+                    <div class="video-title">🧠 Quiz — ${quizTitle}</div>
+                    <div class="video-duration">▶ Clique para responder</div>
+                  </div>
+                  <span class="video-badge" style="background:#a855f7;color:#fff;">QUIZ</span>
+                  <button class="done-btn" style="opacity:0;pointer-events:none;">✓</button>
+                  <button class="edit-remove-btn" onclick="this.closest('.quiz-inline').remove()" title="Remover">🗑</button>
+                `;
+                insertAfter.insertAdjacentElement('afterend', li);
+              } catch(e) { console.warn('Quiz restore error:', e); }
+            });
+          }
+
+          if (addBadgeRow) main.insertBefore(card, addBadgeRow);
+          else main.appendChild(card);
         });
+
         if (data.texts) {
           Object.entries(data.texts).forEach(([id, val]) => {
             const el = document.querySelector(`[data-fid="${id}"]`);
             if (el) el.textContent = val;
           });
         }
-        // Restore quizzes after modules are built
-        if (data.quizzes && Array.isArray(data.quizzes)) {
-          data.quizzes.forEach(({ fileId, quizData, quizTitle }) => {
-            try {
-              const questions = JSON.parse(quizData);
-              const pdfLi = document.querySelector(`li[data-file-id="${fileId}"]`);
-              const playerWrap = document.getElementById('player-' + fileId);
-              const insertAfter = playerWrap || pdfLi;
-              if (!insertAfter) return;
-              // Remove if already exists
-              const existing = document.querySelector(`.quiz-inline[data-quiz-for="${fileId}"]`);
-              if (existing) existing.remove();
-              const li = document.createElement('li');
-              li.className = 'video-item quiz-inline';
-              li.dataset.quizFor = fileId;
-              li.dataset.quizData = quizData;
-              li.dataset.quizTitle = quizTitle;
-              li.innerHTML = `
-                <div class="video-drag-handle" style="opacity:0;pointer-events:none;">⠿</div>
-                <div class="video-play" style="background:#a855f7;">
-                  <svg viewBox="0 0 24 24" fill="white" width="14" height="14"><path d="M12 3a9 9 0 110 18A9 9 0 0112 3zm0 4a1 1 0 00-1 1v4a1 1 0 00.553.894l3 1.5a1 1 0 10.894-1.788L13 11.382V8a1 1 0 00-1-1z"/></svg>
-                </div>
-                <div class="video-info" onclick="openQuizFromBadge('${fileId}')" style="cursor:pointer;">
-                  <div class="video-title">🧠 Quiz — ${quizTitle}</div>
-                  <div class="video-duration">▶ Clique para responder</div>
-                </div>
-                <span class="video-badge" style="background:#a855f7;color:#fff;">QUIZ</span>
-                <button class="done-btn" style="opacity:0;pointer-events:none;">✓</button>
-                <button class="edit-remove-btn" onclick="this.closest('.quiz-inline').remove()" title="Remover">🗑</button>
-              `;
-              insertAfter.insertAdjacentElement('afterend', li);
-            } catch(e) { console.warn('Quiz restore error:', e); }
-          });
-        }
-        setTimeout(() => { if (window.updateCounter) window.updateCounter(); }, 100);
+
+        setTimeout(() => {
+          if (window.updateCounter) window.updateCounter();
+          if (document.body.classList.contains('edit-mode')) setDraggable(true);
+        }, 100);
       }
 
     } catch(e) {
@@ -412,6 +468,15 @@
   }
   .badge-card:hover {
     border-color: var(--border-hover);
+  }
+  .badge-card.collapsed .progress-wrap,
+  .badge-card.collapsed #accordionList,
+  .badge-card.collapsed .add-module-row {
+    display: none !important;
+  }
+  .badge-card.collapsed #badgeChevron,
+  .badge-card.collapsed svg[id$="Chevron"] {
+    transform: rotate(-90deg);
   }
 
   /* ── BADGE HEADER ── */
@@ -1033,6 +1098,22 @@
   .accordion-item.drag-over {
     border-top: 2px solid var(--accent);
   }
+  .badge-drag-handle {
+    display: none;
+    cursor: grab;
+    font-size: 1.1rem;
+    color: var(--text-muted);
+    padding: 4px 8px 4px 0;
+    transition: opacity 0.2s, color 0.2s;
+    user-select: none;
+    flex-shrink: 0;
+  }
+  body.edit-mode .badge-drag-handle {
+    display: block;
+    opacity: 0.4;
+  }
+  .badge-drag-handle:hover { opacity: 1 !important; color: var(--accent); }
+
   body.edit-mode .acc-drag-handle {
     display: flex;
   }
@@ -1077,6 +1158,22 @@
   .accordion-item.drag-highlight {
     border-top: 2px solid var(--accent) !important;
   }
+  .add-badge-row {
+    display: none;
+    margin: 16px auto 0;
+    max-width: 960px;
+    padding: 16px;
+    border: 1.5px dashed var(--border);
+    border-radius: 16px;
+    color: var(--text-muted);
+    font-size: 0.85rem;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .add-badge-row:hover { background: rgba(74,222,74,0.07); border-color: var(--accent); color: var(--accent); }
+  body.edit-mode .add-badge-row { display: block; }
+
   .add-module-row {
     display: none;
     align-items: center;
@@ -1439,10 +1536,11 @@
   </div>
 
   <!-- BADGE CARD -->
-  <div class="badge-card">
+  <div class="badge-card collapsed">
 
     <!-- BADGE HEADER -->
-    <div class="badge-header">
+    <div class="badge-header" onclick="toggleBadgeCard(this)" style="cursor:pointer;">
+      <div class="badge-drag-handle" title="Arrastar">⠿</div>
       <div class="badge-info">
         <div class="badge-icon">🏅</div>
         <div class="badge-text">
@@ -1455,7 +1553,8 @@
           <svg width="7" height="7" viewBox="0 0 8 8" fill="none"><circle cx="4" cy="4" r="4" fill="#4ade4a"/></svg>
           Ativo
         </div>
-        <div class="chip chip-count">0 / 10 concluídos</div>
+        <div class="chip chip-count" id="doneChip">0 / 10 concluídos</div>
+        <svg id="badgeChevron" style="transition:transform 0.3s;margin-left:8px;" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
       </div>
     </div>
 
@@ -1958,7 +2057,34 @@
     </div>
   </div><!-- /badge-card -->
 
+  <!-- CREATE NEW BADGE CARD ROW -->
+  <div class="add-badge-row" onclick="openAddBadgeModal()">
+    ＋ Criar novo conteúdo
+  </div>
+
 </main>
+
+<!-- ADD BADGE MODAL -->
+<div class="add-modal-overlay" id="addBadgeModal">
+  <div class="add-modal">
+    <div class="add-modal-header">
+      <span>Novo Conteúdo</span>
+      <button onclick="closeAddBadgeModal()">✕</button>
+    </div>
+    <div class="add-modal-body">
+      <label>Nome</label>
+      <input id="badgeName" type="text" placeholder="ex: Programada 4" />
+      <label>Subtítulo</label>
+      <input id="badgeSubtitle" type="text" placeholder="ex: 8 temas · 20 videoaulas" />
+      <label>Emoji / Ícone</label>
+      <input id="badgeIcon" type="text" placeholder="🏅" maxlength="4" />
+    </div>
+    <div class="add-modal-footer">
+      <button class="btn-cancel" onclick="closeAddBadgeModal()">Cancelar</button>
+      <button class="btn-confirm" onclick="confirmAddBadge()">Criar</button>
+    </div>
+  </div>
+</div>
 
 <!-- ADD MODULE MODAL -->
 <div class="add-modal-overlay" id="addModuleModal">
@@ -2036,6 +2162,70 @@
 
   function initDragDrop() {}
 
+  function toggleBadgeCard(header) {
+    header.closest('.badge-card').classList.toggle('collapsed');
+  }
+
+  function openAddBadgeModal() {
+    document.getElementById('addBadgeModal').classList.add('active');
+  }
+  function closeAddBadgeModal() {
+    document.getElementById('addBadgeModal').classList.remove('active');
+  }
+  function confirmAddBadge() {
+    const name     = document.getElementById('badgeName').value.trim() || 'Novo Conteúdo';
+    const subtitle = document.getElementById('badgeSubtitle').value.trim() || '0 temas';
+    const icon     = document.getElementById('badgeIcon').value.trim() || '🏅';
+
+    const card = document.createElement('div');
+    card.className = 'badge-card';
+    card.style.marginTop = '24px';
+    card.innerHTML = `
+      <div class="badge-header" onclick="toggleBadgeCard(this)" style="cursor:pointer;">
+        <div class="badge-drag-handle" title="Arrastar">⠿</div>
+        <div class="badge-info">
+          <div class="badge-icon">${icon}</div>
+          <div class="badge-text">
+            <h2 contenteditable="false">${name}</h2>
+            <span contenteditable="false">${subtitle}</span>
+          </div>
+        </div>
+        <div class="badge-chip">
+          <div class="chip chip-green">
+            <svg width="7" height="7" viewBox="0 0 8 8" fill="none"><circle cx="4" cy="4" r="4" fill="#4ade4a"/></svg>
+            Ativo
+          </div>
+          <div class="chip chip-count">0 / 0 concluídos</div>
+          <svg style="transition:transform 0.3s;margin-left:8px;" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+        </div>
+      </div>
+      <div class="progress-wrap" style="padding:16px 32px 0;">
+        <div class="progress-bar-track"><div class="progress-bar-fill" style="width:0%"></div></div>
+      </div>
+      <div class="accordion-list"></div>
+      <div class="add-module-row" onclick="openAddModuleModal(this.closest('.badge-card').querySelector('.accordion-list'))">
+        ＋ Adicionar novo módulo
+      </div>
+    `;
+
+    // Insert before the add-badge-row
+    const addBadgeRow = document.querySelector('.add-badge-row');
+    addBadgeRow.parentNode.insertBefore(card, addBadgeRow);
+
+    // Clear inputs
+    document.getElementById('badgeName').value = '';
+    document.getElementById('badgeSubtitle').value = '';
+    document.getElementById('badgeIcon').value = '';
+
+    closeAddBadgeModal();
+    card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    if (document.body.classList.contains('edit-mode')) {
+      const handle = card.querySelector('.badge-drag-handle');
+      if (handle) addDragHandle(handle, card, 'badge');
+    }
+    if (window.saveData) saveData();
+  }
+
   function setDraggable(enabled) {
     if (enabled) {
       // Modules
@@ -2044,9 +2234,14 @@
         if (handle) addDragHandle(handle, item, 'module');
       });
       // Videos
-      document.querySelectorAll('.video-item').forEach(item => {
+      document.querySelectorAll('.video-item:not(.quiz-inline)').forEach(item => {
         const handle = item.querySelector('.video-drag-handle');
         if (handle) addDragHandle(handle, item, 'video');
+      });
+      // Badge cards
+      document.querySelectorAll('.badge-card').forEach(item => {
+        const handle = item.querySelector('.badge-drag-handle');
+        if (handle) addDragHandle(handle, item, 'badge');
       });
     } else {
       document.querySelectorAll('[data-drag-init]').forEach(el => {
@@ -2084,7 +2279,7 @@
 
       let _dropTarget   = null;
       let _dropPosition = 'after';
-      const selector = type === 'module' ? '.accordion-item' : '.video-item:not(.edit-add-row)';
+      const selector = type === 'module' ? '.accordion-item' : type === 'badge' ? '.badge-card' : '.video-item:not(.edit-add-row)';
 
       function doMove(cx, cy) {
         ghost.style.left = (cx - offsetX) + 'px';
@@ -2850,6 +3045,11 @@ O campo "correct" é o índice 0-3. Crie 6 questões variando os tipos acima sob
 
   window.addEventListener('load', () => {
     setTimeout(() => { document.getElementById('progressFill').style.width = '0%'; }, 500);
+    // Close all accordions on load
+    document.querySelectorAll('.accordion-trigger.open').forEach(t => {
+      t.classList.remove('open');
+      t.closest('.accordion-item').querySelector('.accordion-body').classList.remove('open');
+    });
     initDragDrop();
   });
 </script>
