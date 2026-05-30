@@ -2231,7 +2231,7 @@
       row.style.color = 'var(--accent)';
       row.dataset.targetList = list.id;
       row.innerHTML = `⧉ Colar módulo "${title}" aqui`;
-      row.onclick = function() { pasteModule(this); };
+      row.onclick = function(e) { e.stopPropagation(); pasteModule(this); };
       list.appendChild(row);
     });
 
