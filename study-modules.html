@@ -982,9 +982,12 @@
     color: var(--text);
   }
   .fs-chat-msg.ai .fs-chat-bubble {
-    background: rgba(74,222,74,0.08);
-    border: 1px solid rgba(74,222,74,0.15);
+    background: transparent;
+    border: none;
     border-bottom-left-radius: 4px;
+    padding: 4px 4px;
+    color: var(--text);
+    max-width: 100%;
   }
   .fs-chat-msg.user .fs-chat-bubble {
     background: rgba(74,222,74,0.18);
@@ -3535,7 +3538,7 @@ O campo "correct" é o índice 0-3. Crie exatamente 6 questões sobre ${pdfTitle
   }
 
   function getChatUrl() {
-    return `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${getChatKey()}`;
+    return `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${getChatKey()}`;
   }
 
   // Load key from Firebase on startup
@@ -3554,7 +3557,7 @@ O campo "correct" é o índice 0-3. Crie exatamente 6 questões sobre ${pdfTitle
     if (existing) existing.remove();
     const overlay = document.createElement('div');
     overlay.id = 'chatKeyModal';
-    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:99999;display:flex;align-items:center;justify-content:center;';
+    overlay.style.cssText = 'position:absolute;inset:0;background:rgba(0,0,0,0.85);z-index:99999;display:flex;align-items:center;justify-content:center;';
     overlay.innerHTML = `
       <div style="background:#0f170f;border:1.5px solid rgba(74,222,74,0.3);border-radius:18px;padding:28px;width:90%;max-width:420px;font-family:'DM Sans',sans-serif;">
         <h3 style="color:#4ade4a;margin:0 0 6px;font-size:1rem;">🔑 Chave Gemini — Chat IA</h3>
@@ -3576,7 +3579,13 @@ O campo "correct" é o índice 0-3. Crie exatamente 6 questões sobre ${pdfTitle
         </div>
       </div>
     `;
-    document.body.appendChild(overlay);
+    // Add inside fs-overlay so it shows above fullscreen
+    const fsOverlay = document.getElementById('fs-overlay');
+    if (fsOverlay && fsOverlay.classList.contains('active')) {
+      fsOverlay.appendChild(overlay);
+    } else {
+      document.body.appendChild(overlay);
+    }
     setTimeout(() => document.getElementById('chatKeyInput').focus(), 100);
   }
 
@@ -3618,11 +3627,27 @@ O campo "correct" é o índice 0-3. Crie exatamente 6 questões sobre ${pdfTitle
     }
   }
 
+  function renderMarkdown(text) {
+    return text
+      .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+      .replace(/\*(.+?)\*/g, '<em>$1</em>')
+      .replace(/^### (.+)$/gm, '<h4 style="color:var(--accent);font-size:0.85rem;margin:10px 0 4px;font-family:Syne,sans-serif;">$1</h4>')
+      .replace(/^## (.+)$/gm, '<h3 style="color:var(--accent);font-size:0.9rem;margin:10px 0 4px;font-family:Syne,sans-serif;">$1</h3>')
+      .replace(/^• (.+)$/gm, '<div style="display:flex;gap:8px;margin:3px 0;"><span style="color:var(--accent);flex-shrink:0;">•</span><span>$1</span></div>')
+      .replace(/^\* (.+)$/gm, '<div style="display:flex;gap:8px;margin:3px 0;"><span style="color:var(--accent);flex-shrink:0;">•</span><span>$1</span></div>')
+      .replace(/^- (.+)$/gm, '<div style="display:flex;gap:8px;margin:3px 0;"><span style="color:var(--accent);flex-shrink:0;">–</span><span>$1</span></div>')
+      .replace(/\n\n/g, '<div style="height:8px;"></div>')
+      .replace(/\n/g, '<br>');
+  }
+
   function appendChatMsg(role, text) {
     const msgs = document.getElementById('fs-chat-messages');
     const div = document.createElement('div');
     div.className = 'fs-chat-msg ' + role;
-    div.innerHTML = `<div class="fs-chat-bubble">${text.replace(/\n/g,'<br>')}</div>`;
+    const bubble = document.createElement('div');
+    bubble.className = 'fs-chat-bubble';
+    bubble.innerHTML = role === 'ai' ? renderMarkdown(text) : text.replace(/\n/g,'<br>');
+    div.appendChild(bubble);
     msgs.appendChild(div);
     msgs.scrollTop = msgs.scrollHeight;
     return div;
@@ -3659,6 +3684,14 @@ O campo "correct" é o índice 0-3. Crie exatamente 6 questões sobre ${pdfTitle
         })
       });
       const data = await res.json();
+      if (!res.ok) {
+        const errMsg = data?.error?.message || `Erro ${res.status}`;
+        typingEl.remove();
+        appendChatMsg('ai', `⚠️ ${errMsg}`);
+        sendBtn.disabled = false;
+        input.focus();
+        return;
+      }
       const reply = data?.candidates?.[0]?.content?.parts?.[0]?.text || 'Desculpe, não consegui responder. Tente novamente.';
 
       typingEl.remove();
