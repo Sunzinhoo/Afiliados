@@ -2211,6 +2211,7 @@
     const duration = trigger.querySelector('.acc-duration')?.textContent?.trim() || '—';
     const num      = trigger.querySelector('.acc-number')?.textContent?.trim() || '01';
     const videos   = [];
+    const quizzes = [];
     item.querySelectorAll('.video-item:not(.quiz-inline)').forEach(li => {
       const fileId = li.dataset.fileId || '';
       if (!fileId) return;
@@ -2218,7 +2219,12 @@
       const type = li.dataset.type || (fileId.startsWith('pdf-') ? 'pdf' : 'video');
       videos.push({ fileId, title: t, type, done: false });
     });
-    window._copiedModule = { title, subtitle, icon, duration, num, videos };
+    item.querySelectorAll('.quiz-inline').forEach(q => {
+      if (q.dataset.quizFor && q.dataset.quizData) {
+        quizzes.push({ fileId: q.dataset.quizFor, quizData: q.dataset.quizData, quizTitle: q.dataset.quizTitle });
+      }
+    });
+    window._copiedModule = { title, subtitle, icon, duration, num, videos, quizzes };
 
     // Build modal with destination options
     let existing = document.getElementById('pasteModal');
@@ -2272,6 +2278,36 @@
     const addRow = list.querySelector('.add-module-row');
     if (addRow) list.insertBefore(item, addRow);
     else list.appendChild(item);
+
+    // Restore quizzes
+    if (window._copiedModule.quizzes) {
+      window._copiedModule.quizzes.forEach(({ fileId, quizData, quizTitle }) => {
+        const pdfLi = item.querySelector(`li[data-file-id="${fileId}"]`);
+        const playerWrap = item.querySelector(`#player-${fileId}`);
+        const insertAfter = playerWrap || pdfLi;
+        if (!insertAfter) return;
+        const li = document.createElement('li');
+        li.className = 'video-item quiz-inline';
+        li.dataset.quizFor = fileId;
+        li.dataset.quizData = quizData;
+        li.dataset.quizTitle = quizTitle;
+        li.innerHTML = `
+          <div class="video-drag-handle" style="opacity:0;pointer-events:none;">⠿</div>
+          <div class="video-play" style="background:#a855f7;">
+            <svg viewBox="0 0 24 24" fill="white" width="14" height="14"><path d="M12 3a9 9 0 110 18A9 9 0 0112 3zm0 4a1 1 0 00-1 1v4a1 1 0 00.553.894l3 1.5a1 1 0 10.894-1.788L13 11.382V8a1 1 0 00-1-1z"/></svg>
+          </div>
+          <div class="video-info" onclick="openQuizFromBadge('${fileId}')" style="cursor:pointer;">
+            <div class="video-title">🧠 Quiz — ${quizTitle}</div>
+            <div class="video-duration">▶ Clique para responder</div>
+          </div>
+          <span class="video-badge" style="background:#a855f7;color:#fff;">QUIZ</span>
+          <button class="done-btn" onclick="toggleDone(event,this)">✓</button>
+          <button class="edit-remove-btn" onclick="this.closest('.quiz-inline').remove()" title="Remover">🗑</button>
+        `;
+        insertAfter.insertAdjacentElement('afterend', li);
+      });
+    }
+
     if (window._saveToFirebase) window._saveToFirebase();
   }
 
