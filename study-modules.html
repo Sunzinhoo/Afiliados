@@ -2273,19 +2273,30 @@
     if (!window._copiedModule) return;
     const list = document.getElementById(listId);
     if (!list) return;
-    const m = { ...window._copiedModule, uid: 'copied-' + Date.now() };
+    // Give each video a unique instanceId to avoid player ID conflicts
+    const suffix = '-inst-' + Date.now().toString(36);
+    const idMap = {};
+    const remappedVideos = (window._copiedModule.videos || []).map(v => {
+      const newFileId = v.fileId + suffix;
+      idMap[v.fileId] = newFileId;
+      return { ...v, fileId: newFileId, _driveId: v.fileId.startsWith('pdf-') ? v.fileId.replace('pdf-', '') : v.fileId };
+    });
+    const remappedQuizzes = (window._copiedModule.quizzes || []).map(q => ({
+      ...q,
+      fileId: idMap[q.fileId] || (q.fileId + suffix)
+    }));
+    const m = { ...window._copiedModule, uid: 'copied-' + Date.now(), videos: remappedVideos };
     const item = buildModule(m);
     const addRow = list.querySelector('.add-module-row');
     if (addRow) list.insertBefore(item, addRow);
     else list.appendChild(item);
 
     // Restore quizzes
-    if (window._copiedModule.quizzes) {
-      window._copiedModule.quizzes.forEach(({ fileId, quizData, quizTitle }) => {
+    if (remappedQuizzes.length > 0) {
+      remappedQuizzes.forEach(({ fileId, quizData, quizTitle }) => {
         const pdfLi = item.querySelector(`li[data-file-id="${fileId}"]`);
-        const playerWrap = item.querySelector(`#player-${fileId}`);
-        const insertAfter = playerWrap || pdfLi;
-        if (!insertAfter) return;
+        const insertAfter = pdfLi;
+        if (!insertAfter) { console.warn('PDF not found for quiz:', fileId); return; }
         const li = document.createElement('li');
         li.className = 'video-item quiz-inline';
         li.dataset.quizFor = fileId;
@@ -2837,9 +2848,11 @@
     document.querySelectorAll('.video-item.playing').forEach(i => i.classList.remove('playing'));
     if (!isActive) {
       wrap.classList.add('active');
-      const isPdf = fileId.startsWith('pdf-');
-      const id = isPdf ? fileId.replace('pdf-', '') : fileId;
-      wrap.querySelector('iframe').src = 'https://drive.google.com/file/d/' + id + '/preview';
+      // Extract base Google Drive ID (strip -inst-... suffix and pdf- prefix)
+      const baseId = fileId.replace(/-inst-[a-z0-9]+$/, '');
+      const isPdf = baseId.startsWith('pdf-');
+      const driveId = isPdf ? baseId.replace('pdf-', '') : baseId;
+      wrap.querySelector('iframe').src = 'https://drive.google.com/file/d/' + driveId + '/preview';
       item.classList.add('playing');
       setTimeout(() => wrap.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 100);
     }
