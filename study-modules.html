@@ -51,7 +51,7 @@
     if (isPdf) wrap.style.cssText = 'aspect-ratio:4/3;';
     wrap.innerHTML = `
       <button class="player-close" onclick="closePlayer(event,'${v.fileId}')">✕</button>
-      ${isPdf ? `<button class="player-fullscreen" onclick="openFullscreen(event,'${v.fileId}')">⛶</button>` : ''}
+      <button class="player-fullscreen" onclick="openFullscreen(event,'${v.fileId}')">⛶</button>
       <iframe src="" allowfullscreen ${isPdf ? 'style="aspect-ratio:4/3;min-height:400px;"' : ''}></iframe>
     `;
     return { li, wrap };
@@ -853,6 +853,18 @@
   .player-fs-overlay iframe {
     flex: 1;
     width: 100%;
+    height: 100%;
+    border: none;
+  }
+  #fs-iframe-slot {
+    flex: 1;
+    width: 100%;
+  }
+  #fs-iframe-slot iframe {
+    width: 100% !important;
+    height: 100% !important;
+    min-height: unset !important;
+    aspect-ratio: unset !important;
     border: none;
   }
   .player-fs-close {
@@ -871,6 +883,146 @@
     transition: background 0.2s;
   }
   .player-fs-close:hover { background: rgba(74,222,74,0.2); }
+
+  /* ── FS AI CHAT BUTTON ── */
+  .fs-ai-btn {
+    position: absolute;
+    top: 50%; right: 12px; transform: translateY(-50%);
+    display: flex; align-items: center; gap: 7px;
+    padding: 10px 18px;
+    background: rgba(6,10,6,0.92);
+    border: 1.5px solid rgba(74,222,74,0.5);
+    border-radius: 50px;
+    color: var(--accent);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    z-index: 10001;
+    transition: all 0.2s;
+    box-shadow: 0 0 18px rgba(74,222,74,0.15);
+    backdrop-filter: blur(10px);
+  }
+  .fs-ai-btn:hover { background: rgba(74,222,74,0.15); box-shadow: 0 0 24px rgba(74,222,74,0.3); }
+  .fs-ai-btn.active { background: rgba(74,222,74,0.18); border-color: var(--accent); }
+
+  /* ── FS CHAT POPUP ── */
+  .fs-chat-popup {
+    position: absolute;
+    top: 50%; right: 70px; transform: translateY(-50%);
+    bottom: auto; left: auto;
+    width: 340px;
+    max-height: 480px;
+    background: rgba(10,16,10,0.97);
+    border: 1.5px solid rgba(74,222,74,0.25);
+    border-radius: 18px;
+    display: flex;
+    flex-direction: column;
+    z-index: 10001;
+    backdrop-filter: blur(20px);
+    box-shadow: 0 8px 40px rgba(0,0,0,0.7), 0 0 30px rgba(74,222,74,0.08);
+    transform: translateY(-50%) translateX(10px) scale(0.97);
+    opacity: 0;
+    pointer-events: none;
+    transition: all 0.22s cubic-bezier(0.34,1.56,0.64,1);
+  }
+  .fs-chat-popup.open {
+    transform: translateY(-50%) translateX(0) scale(1);
+    opacity: 1;
+    pointer-events: all;
+  }
+  .fs-chat-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 16px 12px;
+    border-bottom: 1px solid rgba(74,222,74,0.1);
+  }
+  .fs-chat-title {
+    display: flex; align-items: center; gap: 8px;
+    font-family: 'Syne', sans-serif;
+    font-weight: 700; font-size: 0.88rem;
+    color: var(--accent);
+  }
+  .fs-chat-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 8px var(--accent);
+    animation: pulse-dot 2s ease-in-out infinite;
+  }
+  .fs-chat-close {
+    background: none; border: none;
+    color: var(--text-muted); cursor: pointer;
+    font-size: 1rem; line-height: 1;
+    padding: 2px 4px; border-radius: 6px;
+    transition: color 0.2s;
+  }
+  .fs-chat-close:hover { color: var(--text); }
+  .fs-chat-messages {
+    flex: 1; overflow-y: auto;
+    padding: 14px 12px;
+    display: flex; flex-direction: column; gap: 10px;
+    max-height: 320px;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(74,222,74,0.2) transparent;
+  }
+  .fs-chat-msg { display: flex; }
+  .fs-chat-msg.ai { justify-content: flex-start; }
+  .fs-chat-msg.user { justify-content: flex-end; }
+  .fs-chat-bubble {
+    max-width: 85%;
+    padding: 9px 13px;
+    border-radius: 14px;
+    font-size: 0.82rem;
+    line-height: 1.5;
+    color: var(--text);
+  }
+  .fs-chat-msg.ai .fs-chat-bubble {
+    background: rgba(74,222,74,0.08);
+    border: 1px solid rgba(74,222,74,0.15);
+    border-bottom-left-radius: 4px;
+  }
+  .fs-chat-msg.user .fs-chat-bubble {
+    background: rgba(74,222,74,0.18);
+    border: 1px solid rgba(74,222,74,0.3);
+    border-bottom-right-radius: 4px;
+    color: #e8f5e8;
+  }
+  .fs-chat-typing .fs-chat-bubble {
+    color: var(--text-muted);
+    font-style: italic;
+  }
+  .fs-chat-input-wrap {
+    display: flex; align-items: flex-end; gap: 8px;
+    padding: 10px 12px 12px;
+    border-top: 1px solid rgba(74,222,74,0.1);
+  }
+  .fs-chat-input {
+    flex: 1;
+    background: rgba(74,222,74,0.06);
+    border: 1px solid rgba(74,222,74,0.2);
+    border-radius: 12px;
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.82rem;
+    padding: 9px 12px;
+    resize: none;
+    outline: none;
+    transition: border 0.2s;
+    max-height: 100px;
+  }
+  .fs-chat-input:focus { border-color: rgba(74,222,74,0.45); }
+  .fs-chat-input::placeholder { color: var(--text-muted); }
+  .fs-chat-send {
+    width: 34px; height: 34px;
+    background: var(--accent);
+    border: none; border-radius: 10px;
+    color: #060a06;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    transition: all 0.2s;
+  }
+  .fs-chat-send:hover { background: #6aff6a; transform: scale(1.05); }
+  .fs-chat-send:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
 
   /* ── PROGRESS BAR ── */
   .progress-wrap {
@@ -1630,6 +1782,7 @@
               </li>
               <div class="video-player-wrap" id="player-1D9tpqnNlSwAJSA5kZjLgkmx5AfM2DC6-">
                 <button class="player-close" onclick="closePlayer(event,'1D9tpqnNlSwAJSA5kZjLgkmx5AfM2DC6-')">✕</button>
+                <button class="player-fullscreen" onclick="openFullscreen(event,'1D9tpqnNlSwAJSA5kZjLgkmx5AfM2DC6-')">⛶</button>
                 <iframe src="" allowfullscreen allow="autoplay"></iframe>
               </div>
               <li class="video-item" onclick="togglePlayer(this, '19iGWCx1OPXczxQbB-B5ZZoBRwYHN34Qg')">
@@ -1641,6 +1794,7 @@
               </li>
               <div class="video-player-wrap" id="player-19iGWCx1OPXczxQbB-B5ZZoBRwYHN34Qg">
                 <button class="player-close" onclick="closePlayer(event,'19iGWCx1OPXczxQbB-B5ZZoBRwYHN34Qg')">✕</button>
+                <button class="player-fullscreen" onclick="openFullscreen(event,'19iGWCx1OPXczxQbB-B5ZZoBRwYHN34Qg')">⛶</button>
                 <iframe src="" allowfullscreen allow="autoplay"></iframe>
               </div>
               <li class="video-item" onclick="togglePlayer(this, 'pdf-1QtZh48FVVBb--1PgYT4YXJ60vMrvRnBf')" style="cursor:pointer;">
@@ -1691,6 +1845,7 @@
               </li>
               <div class="video-player-wrap" id="player-1IC63BcE89Vt6K-x9VgEiNV4wGiqgH4RZ">
                 <button class="player-close" onclick="closePlayer(event,'1IC63BcE89Vt6K-x9VgEiNV4wGiqgH4RZ')">✕</button>
+                <button class="player-fullscreen" onclick="openFullscreen(event,'1IC63BcE89Vt6K-x9VgEiNV4wGiqgH4RZ')">⛶</button>
                 <iframe src="" allowfullscreen allow="autoplay"></iframe>
               </div>
               <li class="video-item" onclick="togglePlayer(this, '1djiNMHgCaBjkRD8LvpvFetVTON45Mj35')">
@@ -1702,6 +1857,7 @@
               </li>
               <div class="video-player-wrap" id="player-1djiNMHgCaBjkRD8LvpvFetVTON45Mj35">
                 <button class="player-close" onclick="closePlayer(event,'1djiNMHgCaBjkRD8LvpvFetVTON45Mj35')">✕</button>
+                <button class="player-fullscreen" onclick="openFullscreen(event,'1djiNMHgCaBjkRD8LvpvFetVTON45Mj35')">⛶</button>
                 <iframe src="" allowfullscreen allow="autoplay"></iframe>
               </div>
               <li class="video-item" onclick="togglePlayer(this, 'pdf-1JWpoohkMjG5fIClYJTap4DYYW85kvd3T')" style="cursor:pointer;">
@@ -2187,7 +2343,38 @@
 <!-- FULLSCREEN OVERLAY -->
 <div class="player-fs-overlay" id="fs-overlay">
   <button class="player-fs-close" onclick="closeFullscreen()">✕</button>
-  <iframe id="fs-iframe" src="" allowfullscreen></iframe>
+
+  <!-- AI CHAT TOGGLE BUTTON -->
+  <button class="fs-ai-btn" id="fs-ai-btn" onclick="toggleFsChat()" title="Assistente IA">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+    </svg>
+    <span>IA</span>
+  </button>
+
+  <!-- AI CHAT POPUP -->
+  <div class="fs-chat-popup" id="fs-chat-popup">
+    <div class="fs-chat-header">
+      <div class="fs-chat-title">
+        <div class="fs-chat-dot"></div>
+        Assistente IA
+      </div>
+      <button class="fs-chat-close" onclick="toggleFsChat()">✕</button>
+    </div>
+    <div class="fs-chat-messages" id="fs-chat-messages">
+      <div class="fs-chat-msg ai">
+        <div class="fs-chat-bubble">Olá! 👋 Estou aqui para ajudar com dúvidas sobre o conteúdo que você está assistindo. Pode perguntar!</div>
+      </div>
+    </div>
+    <div class="fs-chat-input-wrap">
+      <textarea class="fs-chat-input" id="fs-chat-input" placeholder="Digite sua dúvida..." rows="1" onkeydown="handleChatKey(event)"></textarea>
+      <button class="fs-chat-send" onclick="sendChatMessage()" id="fs-chat-send-btn">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <div id="fs-iframe-slot" style="flex:1;width:100%;display:flex;"></div>
 </div>
 
 <script>
@@ -2742,7 +2929,7 @@
     if (isPdf) playerDiv.style.cssText = 'aspect-ratio:4/3;';
     playerDiv.innerHTML = `
       <button class="player-close" onclick="closePlayer(event,'${fileId}')">✕</button>
-      ${isPdf ? `<button class="player-fullscreen" onclick="openFullscreen(event,'${fileId}')">⛶</button>` : ''}
+      <button class="player-fullscreen" onclick="openFullscreen(event,'${fileId}')">⛶</button>
       <iframe src="" allowfullscreen ${isPdf ? 'style="aspect-ratio:4/3;min-height:400px;"' : ''}></iframe>
     `;
 
@@ -2909,20 +3096,78 @@
     if (prev && prev.classList.contains('video-item')) prev.classList.remove('playing');
   }
 
+  let _fsOriginalParent = null;
+  let _fsOriginalNextSibling = null;
+  let _fsCurrentIframe = null;
+
   function openFullscreen(e, fileId) {
     e.stopPropagation();
-    const id = fileId.replace('pdf-', '');
+    const slot = document.getElementById('fs-iframe-slot');
     const overlay = document.getElementById('fs-overlay');
-    document.getElementById('fs-iframe').src = 'https://drive.google.com/file/d/' + id + '/preview';
+
+    // Find the iframe inside the player wrap
+    const playerWrap = document.getElementById('player-' + fileId);
+    if (!playerWrap) return;
+    const iframe = playerWrap.querySelector('iframe');
+    if (!iframe) return;
+
+    // Save original location so we can return it
+    _fsOriginalParent = iframe.parentNode;
+    _fsOriginalNextSibling = iframe.nextSibling;
+    _fsCurrentIframe = iframe;
+
+    // Move iframe into fullscreen slot
+    slot.appendChild(iframe);
+
     overlay.classList.add('active');
     document.body.style.overflow = 'hidden';
+
+    // Reset chat
+    _chatHistory = [];
+    const msgs = document.getElementById('fs-chat-messages');
+    msgs.innerHTML = '<div class="fs-chat-msg ai"><div class="fs-chat-bubble">Olá! 👋 Estou aqui para ajudar com dúvidas sobre o conteúdo que você está assistindo. Pode perguntar!</div></div>';
+
+    // Request real browser fullscreen
+    if (overlay.requestFullscreen) overlay.requestFullscreen();
+    else if (overlay.webkitRequestFullscreen) overlay.webkitRequestFullscreen();
   }
 
   function closeFullscreen() {
-    document.getElementById('fs-iframe').src = '';
-    document.getElementById('fs-overlay').classList.remove('active');
+    const overlay = document.getElementById('fs-overlay');
+    const slot = document.getElementById('fs-iframe-slot');
+
+    // Move iframe back to original position
+    if (_fsCurrentIframe && _fsOriginalParent) {
+      if (_fsOriginalNextSibling) {
+        _fsOriginalParent.insertBefore(_fsCurrentIframe, _fsOriginalNextSibling);
+      } else {
+        _fsOriginalParent.appendChild(_fsCurrentIframe);
+      }
+      _fsCurrentIframe = null;
+      _fsOriginalParent = null;
+      _fsOriginalNextSibling = null;
+    }
+
+    overlay.classList.remove('active');
     document.body.style.overflow = '';
+
+    // Exit browser fullscreen if active
+    if (document.fullscreenElement || document.webkitFullscreenElement) {
+      if (document.exitFullscreen) document.exitFullscreen();
+      else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
+    }
+
+    document.getElementById('fs-chat-popup').classList.remove('open');
+    document.getElementById('fs-ai-btn').classList.remove('active');
   }
+
+  // Sync close when user presses Esc (browser exits fullscreen)
+  document.addEventListener('fullscreenchange', () => {
+    if (!document.fullscreenElement) {
+      const overlay = document.getElementById('fs-overlay');
+      if (overlay.classList.contains('active')) closeFullscreen();
+    }
+  });
 
   /* ══════════════════════════════
      QUIZ GENERATOR — POPUP MODAL
@@ -2995,7 +3240,7 @@ Retorne SOMENTE JSON válido, sem markdown, sem texto extra:
 
 O campo "correct" é o índice 0-3. Crie exatamente 6 questões sobre ${pdfTitle}.`;
 
-      const geminiKey = localStorage.getItem('_geminiKey') || '';
+      const geminiKey = 'AIzaSyDamghk3KyLaVlkW7TME620jB0n0AB9FMU';
       if (!geminiKey) {
         openGeminiKeyModal();
         throw new Error('Configure sua chave Gemini gratuita primeiro.');
@@ -3270,6 +3515,86 @@ O campo "correct" é o índice 0-3. Crie exatamente 6 questões sobre ${pdfTitle
   }
 
   document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeFullscreen(); closeQuizModal(); } });
+
+  /* ══════════════════════════════
+     GEMINI AI CHAT (FULLSCREEN)
+  ══════════════════════════════ */
+  const GEMINI_API_KEY = 'AQ.Ab8RN6IQ2IbZ7wEvJoIOlAtN6Uz51B2aJolW-ToVfSMB11GoaQ';
+  const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`;
+  let _chatHistory = [];
+
+  function toggleFsChat() {
+    const popup = document.getElementById('fs-chat-popup');
+    const btn   = document.getElementById('fs-ai-btn');
+    popup.classList.toggle('open');
+    btn.classList.toggle('active');
+    if (popup.classList.contains('open')) {
+      setTimeout(() => document.getElementById('fs-chat-input').focus(), 200);
+    }
+  }
+
+  function handleChatKey(e) {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      sendChatMessage();
+    }
+  }
+
+  function appendChatMsg(role, text) {
+    const msgs = document.getElementById('fs-chat-messages');
+    const div = document.createElement('div');
+    div.className = 'fs-chat-msg ' + role;
+    div.innerHTML = `<div class="fs-chat-bubble">${text.replace(/\n/g,'<br>')}</div>`;
+    msgs.appendChild(div);
+    msgs.scrollTop = msgs.scrollHeight;
+    return div;
+  }
+
+  async function sendChatMessage() {
+    const input = document.getElementById('fs-chat-input');
+    const sendBtn = document.getElementById('fs-chat-send-btn');
+    const text = input.value.trim();
+    if (!text) return;
+
+    input.value = '';
+    input.style.height = 'auto';
+    sendBtn.disabled = true;
+
+    appendChatMsg('user', text);
+
+    // Add to history
+    _chatHistory.push({ role: 'user', parts: [{ text }] });
+
+    // Typing indicator
+    const typingEl = appendChatMsg('ai', '...');
+    typingEl.classList.add('fs-chat-typing');
+
+    try {
+      const res = await fetch(GEMINI_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          system_instruction: {
+            parts: [{ text: 'Você é um assistente de estudos inteligente que ajuda estudantes de medicina e áreas da saúde. Responda em português, de forma clara e didática. Seja conciso mas completo.' }]
+          },
+          contents: _chatHistory
+        })
+      });
+      const data = await res.json();
+      const reply = data?.candidates?.[0]?.content?.parts?.[0]?.text || 'Desculpe, não consegui responder. Tente novamente.';
+
+      typingEl.remove();
+      appendChatMsg('ai', reply);
+      _chatHistory.push({ role: 'model', parts: [{ text: reply }] });
+    } catch(err) {
+      typingEl.remove();
+      appendChatMsg('ai', '⚠️ Erro ao conectar com a IA. Verifique sua chave de API.');
+      console.error('Gemini error:', err);
+    }
+
+    sendBtn.disabled = false;
+    input.focus();
+  }
 
   window.addEventListener('load', () => {
     setTimeout(() => { document.getElementById('progressFill').style.width = '0%'; }, 500);
