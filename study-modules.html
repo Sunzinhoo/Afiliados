@@ -210,6 +210,7 @@
                 <div class="badge-text">
                   <h2 contenteditable="false">${bc.name || ''}</h2>
                   <span contenteditable="false">${bc.subtitle || ''}</span>
+                  <span class="badge-done-count">0 / 0 concluídos</span>
                 </div>
               </div>
               <div class="badge-chip">
@@ -1553,9 +1554,9 @@
   </div>
   <nav class="nav-pill">
     <a href="#" class="active">Módulos</a>
-    <a href="#">Flashcards</a>
-    <a href="#">Simulados</a>
-    <a href="#">Progresso</a>
+    <a href="#">APGs</a>
+    <a href="#">Livros</a>
+    <a href="#">Calendário</a>
   </nav>
 </header>
 
@@ -1564,9 +1565,9 @@
 
   <!-- PAGE TITLE -->
   <div class="page-title">
-    <div class="eyebrow" contenteditable="false">3° período</div>
-    <h1><span contenteditable="false">3° </span><span contenteditable="false" style="color:var(--accent)">período</span></h1>
-    <p contenteditable="false">Videoaulas organizadas por tema para fixar o conteúdo de forma objetiva e eficiente.</p>
+    <div class="eyebrow" contenteditable="false" data-fid="page-eyebrow">CONTEÚDOS</div>
+    <h1><span contenteditable="false" data-fid="page-title1">3° </span><span contenteditable="false" style="color:var(--accent)" data-fid="page-title2">período</span></h1>
+    <p contenteditable="false" data-fid="page-desc">Videoaulas organizadas por tema para fixar o conteúdo de forma objetiva e eficiente.</p>
     <span class="edit-hint">✏️ clique para editar qualquer texto</span>
   </div>
 
@@ -1580,7 +1581,7 @@
         <div class="badge-icon">🏅</div>
         <div class="badge-text">
           <h2>Programada 3</h2>
-          <span>10 temas · 28 videoaulas · ~6h de conteúdo</span>
+          <span>10 temas · 28 vídeos/PDFs</span>
           <span class="badge-done-count" id="doneChip">0 / 10 concluídos</span>
         </div>
       </div>
@@ -2356,6 +2357,7 @@
           <div class="badge-text">
             <h2 contenteditable="false">${name}</h2>
             <span contenteditable="false">${subtitle}</span>
+            <span class="badge-done-count">0 / 0 concluídos</span>
           </div>
         </div>
         <div class="badge-chip">
@@ -2635,6 +2637,7 @@
   }
 
   function confirmEdit() {
+    if (window._saveToFirebase) window._saveToFirebase();
     document.querySelectorAll('[contenteditable="true"]').forEach(el => {
       el.contentEditable = 'false';
     });
@@ -2812,10 +2815,24 @@
   }
 
   function updateCounter() {
-    const total = document.querySelectorAll('.accordion-item').length;
-    const completed = document.querySelectorAll('.accordion-trigger.accordion-done').length;
-    const chip = document.querySelector('.chip-count');
-    if (chip) chip.textContent = completed + ' / ' + total + ' concluídos';
+    // Update each badge card independently
+    document.querySelectorAll('.badge-card').forEach(card => {
+      const modules = card.querySelectorAll('.accordion-item').length;
+      const videos  = card.querySelectorAll('.video-item:not(.quiz-inline):not(.edit-add-row)').length;
+      const quizzes = card.querySelectorAll('.quiz-inline').length;
+      const totalItems = videos + quizzes;
+      const doneItems  = card.querySelectorAll('.video-item.done').length;
+
+      // Update subtitle: "X temas · Y vídeos/PDFs"
+      const subtitleEl = card.querySelector('.badge-text span:not(.badge-done-count)');
+      if (subtitleEl && !subtitleEl.hasAttribute('data-fid')) {
+        subtitleEl.textContent = modules + (modules === 1 ? ' tema' : ' temas') + ' · ' + videos + (videos === 1 ? ' vídeo/PDF' : ' vídeos/PDFs');
+      }
+
+      // Update done count
+      const doneEl = card.querySelector('.badge-done-count');
+      if (doneEl) doneEl.textContent = doneItems + ' / ' + totalItems + ' concluídos';
+    });
   }
 
   /* ══════════════════════════════
@@ -3239,6 +3256,7 @@ O campo "correct" é o índice 0-3. Crie exatamente 6 questões sobre ${pdfTitle
       t.closest('.accordion-item').querySelector('.accordion-body').classList.remove('open');
     });
     initDragDrop();
+    setTimeout(() => { if (window.updateCounter) updateCounter(); }, 500);
   });
 </script>
 </body>
