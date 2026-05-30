@@ -3331,7 +3331,7 @@ O campo "correct" é o índice 0-3. Crie exatamente 6 questões sobre ${pdfTitle
 
   window.saveGeminiKey = function() {
     const val = document.getElementById('geminiKeyInput').value.trim();
-    if (!val.startsWith('AIza')) { alert('Chave inválida. Deve começar com AIza'); return; }
+    if (!val) { alert('Chave inválida. Cole a chave gerada no AI Studio.'); return; }
     localStorage.removeItem('_geminiKey');
     localStorage.setItem('_geminiKey', val);
     document.getElementById('geminiModal').remove();
