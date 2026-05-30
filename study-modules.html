@@ -1438,6 +1438,7 @@
     padding: 14px 16px;
   }
   .quiz-question-text {
+    white-space: pre-line;
     font-size: 0.84rem;
     font-weight: 600;
     color: var(--text);
@@ -2912,32 +2913,47 @@
     try {
       const prompt = `Você é um professor de medicina da Faculdade Afya de Garanhuns. Crie 6 questões de múltipla escolha sobre "${pdfTitle}" no estilo exato das provas da Afya (AP3 - Sistemas Orgânicos Integrados III).
 
-ESTILO OBRIGATÓRIO das questões — varie entre estes 3 tipos:
+FORMATAÇÃO OBRIGATÓRIA — siga exatamente o layout das provas reais:
+
+O campo "question" deve ser formatado assim (use \n para quebras de linha):
+- Linha 1: Fonte entre parênteses se aplicável, ex: "(ITPAC Porto Nacional)"
+- Parágrafo do enunciado/caso clínico com dados detalhados
+- Linha em branco
+- "Considerando o caso clínico apresentado acima, avalie as afirmações a seguir:" (ou similar)
+- Linha em branco
+- Afirmativas numeradas com algarismos romanos, cada uma em nova linha:
+  "I. texto da afirmativa"
+  "II. texto da afirmativa"
+  "III. texto da afirmativa"
+- Linha em branco
+- "É correto o que se afirma em:" ou "Assinale a alternativa correta:"
+
+TIPOS — varie entre os 3:
 
 TIPO 1 — CASO CLÍNICO COM ANÁLISE DE AFIRMATIVAS:
-Apresente um paciente com dados clínicos detalhados (idade, sintomas, exame físico, exames laboratoriais). Em seguida, liste 3-4 afirmativas numeradas (I, II, III, IV) sobre fisiopatologia ou conduta. A pergunta deve ser "Assinale a alternativa correta:" com opções como "Apenas I e II", "Apenas I, II e IV", etc.
+Enunciado clínico rico (idade, sexo, sintomas, exame físico, labs) + 3-4 afirmativas I/II/III/IV + "Assinale a alternativa correta:"
+Opções: "Apenas I e II estão corretas.", "Apenas I, II e III estão corretas.", etc.
 
 TIPO 2 — ASSERÇÃO/RELAÇÃO (I PORQUE II):
-Apresente contexto clínico breve. Depois duas asserções ligadas por "PORQUE". As opções são sempre:
+Enunciado clínico breve + duas asserções ligadas por "PORQUE". Opções fixas:
 A) As afirmações I e II são verdadeiras, e a II justifica a I.
 B) As afirmações I e II são verdadeiras, porém a II não justifica a I.
 C) A afirmação I é verdadeira, e a II é falsa.
 D) A afirmação I é falsa, e a II é verdadeira.
 
 TIPO 3 — CASO CLÍNICO COM INTEGRAÇÃO ÉTICA:
-Apresente caso clínico + mencione o Código de Ética do Estudante de Medicina (dever de orientar com base em evidências, evitar informações falsas). As 4 alternativas trazem condutas ou afirmações, sendo 3 incorretas/antiéticas e 1 correta.
+Caso clínico + Código de Ética do Estudante de Medicina. 4 alternativas com condutas, 1 correta.
 
-REGRAS:
-- Linguagem técnica e formal, igual à Afya
-- Casos clínicos ricos em detalhes (idade, sexo, sintomas, achados laboratoriais)
+REGRAS GERAIS:
+- Linguagem técnica e formal
 - Sempre 4 alternativas: A), B), C), D)
-- Misture os 3 tipos ao longo das 6 questões
-- Foque nos temas de ${pdfTitle}
+- Misture os 3 tipos nas 6 questões
+- Foco em ${pdfTitle}
 
 Retorne SOMENTE JSON válido, sem markdown, sem texto extra:
-{"questions":[{"question":"Enunciado completo da questão com caso clínico e afirmativas se houver","options":["A) opção","B) opção","C) opção","D) opção"],"correct":0,"explanation":"Explicação detalhada da resposta correta com embasamento fisiopatológico"}]}
+{"questions":[{"question":"enunciado formatado com \n para quebras de linha","options":["A) opção","B) opção","C) opção","D) opção"],"correct":0,"explanation":"Explicação detalhada com embasamento fisiopatológico"}]}
 
-O campo "correct" é o índice 0-3. Crie 6 questões variando os tipos acima sobre ${pdfTitle}.`;
+O campo "correct" é o índice 0-3. Crie exatamente 6 questões sobre ${pdfTitle}.`;
 
       const geminiKey = localStorage.getItem('_geminiKey') || '';
       if (!geminiKey) {
@@ -3032,7 +3048,7 @@ O campo "correct" é o índice 0-3. Crie 6 questões variando os tipos acima sob
         ${questions.map((q, qi) => `
           <div class="quiz-question">
             <div class="quiz-question-num">QUESTÃO ${qi + 1} DE ${questions.length}</div>
-            <div class="quiz-question-text">${q.question}</div>
+            <div class="quiz-question-text">${q.question.replace(/\n/g, "<br>")}</div>
             <div class="quiz-options">
               ${q.options.map((opt, oi) => `<div class="quiz-option-preview ${oi === q.correct ? 'correct-preview' : ''}">${opt}</div>`).join('')}
             </div>
@@ -3122,7 +3138,7 @@ O campo "correct" é o índice 0-3. Crie 6 questões variando os tipos acima sob
       <div class="quiz-questions">
         <div class="quiz-question" data-qi="${startIndex}">
           <div class="quiz-question-num">QUESTÃO ${startIndex + 1} DE ${total}</div>
-          <div class="quiz-question-text">${q.question}</div>
+          <div class="quiz-question-text">${q.question.replace(/\n/g, "<br>")}</div>
           <div class="quiz-options">
             ${q.options.map((opt, oi) => `
               <button class="quiz-option" onclick="answerInlineQuiz(this,${startIndex},${oi},${q.correct},'${fileId}')">${opt}</button>
