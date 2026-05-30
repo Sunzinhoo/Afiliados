@@ -212,12 +212,7 @@
                 </div>
               </div>
               <div class="badge-chip">
-                <div class="chip chip-green">
-                  <svg width="7" height="7" viewBox="0 0 8 8" fill="none"><circle cx="4" cy="4" r="4" fill="#4ade4a"/></svg>
-                  Ativo
-                </div>
-                <div class="chip chip-count">0 / 0 concluídos</div>
-                <svg style="transition:transform 0.3s;margin-left:8px;" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+                <svg style="transition:transform 0.3s;" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
               </div>
             </div>
             <div class="progress-wrap" style="padding:16px 32px 0;">
@@ -258,7 +253,7 @@
                     <div class="video-duration">▶ Clique para responder</div>
                   </div>
                   <span class="video-badge" style="background:#a855f7;color:#fff;">QUIZ</span>
-                  <button class="done-btn" style="opacity:0;pointer-events:none;">✓</button>
+                  <button class="done-btn" onclick="toggleDone(event,this)">✓</button>
                   <button class="edit-remove-btn" onclick="this.closest('.quiz-inline').remove()" title="Remover">🗑</button>
                 `;
                 insertAfter.insertAdjacentElement('afterend', li);
@@ -470,7 +465,7 @@
     border-color: var(--border-hover);
   }
   .badge-card.collapsed .progress-wrap,
-  .badge-card.collapsed #accordionList,
+  .badge-card.collapsed .accordion-list,
   .badge-card.collapsed .add-module-row {
     display: none !important;
   }
@@ -1098,6 +1093,12 @@
   .accordion-item.drag-over {
     border-top: 2px solid var(--accent);
   }
+  .badge-done-count {
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    margin-top: 2px;
+    display: block;
+  }
   .badge-drag-handle {
     display: none;
     cursor: grab;
@@ -1546,15 +1547,11 @@
         <div class="badge-text">
           <h2>Programada 3</h2>
           <span>10 temas · 28 videoaulas · ~6h de conteúdo</span>
+          <span class="badge-done-count" id="doneChip">0 / 10 concluídos</span>
         </div>
       </div>
       <div class="badge-chip">
-        <div class="chip chip-green">
-          <svg width="7" height="7" viewBox="0 0 8 8" fill="none"><circle cx="4" cy="4" r="4" fill="#4ade4a"/></svg>
-          Ativo
-        </div>
-        <div class="chip chip-count" id="doneChip">0 / 10 concluídos</div>
-        <svg id="badgeChevron" style="transition:transform 0.3s;margin-left:8px;" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+        <svg id="badgeChevron" style="transition:transform 0.3s;" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
       </div>
     </div>
 
@@ -2052,7 +2049,7 @@
       </div>
 
     </div><!-- /accordion-list -->
-    <div class="add-module-row" onclick="openAddModuleModal()">
+    <div class="add-module-row" onclick="openAddModuleModal(this.closest('.badge-card').querySelector('.accordion-list'))">
       ＋ Adicionar novo módulo
     </div>
   </div><!-- /badge-card -->
@@ -2067,21 +2064,16 @@
 <!-- ADD BADGE MODAL -->
 <div class="add-modal-overlay" id="addBadgeModal">
   <div class="add-modal">
-    <div class="add-modal-header">
-      <span>Novo Conteúdo</span>
-      <button onclick="closeAddBadgeModal()">✕</button>
-    </div>
-    <div class="add-modal-body">
-      <label>Nome</label>
-      <input id="badgeName" type="text" placeholder="ex: Programada 4" />
-      <label>Subtítulo</label>
-      <input id="badgeSubtitle" type="text" placeholder="ex: 8 temas · 20 videoaulas" />
-      <label>Emoji / Ícone</label>
-      <input id="badgeIcon" type="text" placeholder="🏅" maxlength="4" />
-    </div>
-    <div class="add-modal-footer">
+    <h3>✨ Novo Conteúdo</h3>
+    <label>Nome</label>
+    <input id="badgeName" type="text" placeholder="ex: Programada 4" />
+    <label>Subtítulo</label>
+    <input id="badgeSubtitle" type="text" placeholder="ex: 8 temas · 20 videoaulas" />
+    <label>Emoji / Ícone</label>
+    <input id="badgeIcon" type="text" placeholder="🏅" maxlength="4" />
+    <div class="add-modal-btns">
       <button class="btn-cancel" onclick="closeAddBadgeModal()">Cancelar</button>
-      <button class="btn-confirm" onclick="confirmAddBadge()">Criar</button>
+      <button class="btn-add" onclick="confirmAddBadge()">Criar</button>
     </div>
   </div>
 </div>
@@ -2366,7 +2358,8 @@
   /* ══════════════════════════════
      ADD MODULE MODAL
   ══════════════════════════════ */
-  function openAddModuleModal() {
+  function openAddModuleModal(targetList) {
+    window._targetModuleList = targetList || document.querySelector('.accordion-list');
     document.getElementById('addModuleModal').classList.add('active');
     document.getElementById('modTitle').value = '';
     document.getElementById('modSpec').value = '';
@@ -2383,7 +2376,7 @@
     const icon = document.getElementById('modIcon').value.trim() || '📖';
     if (!title) { alert('Digite o título do módulo!'); return; }
 
-    const list = document.getElementById('accordionList');
+    const list = window._targetModuleList || document.getElementById('accordionList');
     const num = list.querySelectorAll('.accordion-item').length + 1;
     const numStr = num.toString().padStart(2, '0');
     const uid = 'mod-' + Date.now();
@@ -2558,6 +2551,7 @@
         <div class="video-duration">▶ Clique para ${isPdf ? 'abrir' : 'assistir'}</div>
       </div>
       <span class="video-badge">${badge}</span>
+      ${isPdf ? `<button class="quiz-gen-btn" onclick="generateQuiz(event,this,'${fileId}','${title.replace(/'/g,"\'").replace(/"/g,'&quot;')}')">🧠 Quiz</button>` : ''}
       <button class="done-btn" onclick="toggleDone(event,this)">✓</button>
       <button class="edit-remove-btn" onclick="removeItem(event,this)" title="Remover" style="display:flex;">🗑</button>
     `;
@@ -2905,7 +2899,7 @@ O campo "correct" é o índice 0-3. Crie 6 questões variando os tipos acima sob
         <div class="video-duration">▶ Clique para responder</div>
       </div>
       <span class="video-badge" style="background:#a855f7;color:#fff;">QUIZ</span>
-      <button class="done-btn" style="opacity:0;pointer-events:none;">✓</button>
+      <button class="done-btn" onclick="toggleDone(event,this)">✓</button>
       <button class="edit-remove-btn" onclick="this.closest('.quiz-inline').remove()" title="Remover">🗑</button>
     `;
 
