@@ -2815,23 +2815,46 @@
   }
 
   function updateCounter() {
+    // Update each accordion module subtitle
+    document.querySelectorAll('.accordion-item').forEach(item => {
+      const vids = item.querySelectorAll('.video-item:not(.quiz-inline):not(.edit-add-row)').length;
+      const subtitleEl = item.querySelector('.acc-subtitle');
+      if (subtitleEl && !subtitleEl.hasAttribute('data-fid')) {
+        const category = subtitleEl.textContent.split('·')[0].trim() || 'Geral';
+        subtitleEl.textContent = category + ' · ' + vids + (vids === 1 ? ' conteúdo' : ' conteúdos');
+      }
+    });
+
     // Update each badge card independently
     document.querySelectorAll('.badge-card').forEach(card => {
-      const modules = card.querySelectorAll('.accordion-item').length;
-      const videos  = card.querySelectorAll('.video-item:not(.quiz-inline):not(.edit-add-row)').length;
-      const quizzes = card.querySelectorAll('.quiz-inline').length;
-      const totalItems = videos + quizzes;
-      const doneItems  = card.querySelectorAll('.video-item.done').length;
+      const moduleItems = card.querySelectorAll('.accordion-item');
+      const totalModules = moduleItems.length;
 
-      // Update subtitle: "X temas · Y vídeos/PDFs"
+      // Count vídeos and PDFs separately
+      let videoCount = 0, pdfCount = 0;
+      card.querySelectorAll('.video-item:not(.quiz-inline):not(.edit-add-row)').forEach(li => {
+        const type = li.dataset.type || (li.dataset.fileId?.startsWith('pdf-') ? 'pdf' : 'video');
+        if (type === 'pdf') pdfCount++; else videoCount++;
+      });
+
+      // Count completed modules (all items done)
+      let doneModules = 0;
+      moduleItems.forEach(mod => {
+        const allItems  = mod.querySelectorAll('.video-item:not(.quiz-inline):not(.edit-add-row)');
+        const doneItems = mod.querySelectorAll('.video-item:not(.quiz-inline):not(.edit-add-row).done');
+        if (allItems.length > 0 && allItems.length === doneItems.length) doneModules++;
+      });
+
       const subtitleEl = card.querySelector('.badge-text span:not(.badge-done-count)');
       if (subtitleEl && !subtitleEl.hasAttribute('data-fid')) {
-        subtitleEl.textContent = modules + (modules === 1 ? ' tema' : ' temas') + ' · ' + videos + (videos === 1 ? ' vídeo/PDF' : ' vídeos/PDFs');
+        let parts = [totalModules + (totalModules === 1 ? ' tema' : ' temas')];
+        if (videoCount > 0) parts.push(videoCount + (videoCount === 1 ? ' vídeo' : ' vídeos'));
+        if (pdfCount > 0) parts.push(pdfCount + (pdfCount === 1 ? ' PDF' : ' PDFs'));
+        subtitleEl.textContent = parts.join(' · ');
       }
 
-      // Update done count
       const doneEl = card.querySelector('.badge-done-count');
-      if (doneEl) doneEl.textContent = doneItems + ' / ' + totalItems + ' concluídos';
+      if (doneEl) doneEl.textContent = doneModules + ' / ' + totalModules + ' temas concluídos';
     });
   }
 
