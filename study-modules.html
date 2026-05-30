@@ -21,6 +21,8 @@
   const db = getDatabase(app);
   const dbRef = ref(db, 'medstudy/programada3');
   const chatKeyRef = ref(db, 'medstudy/config/chatKey');
+  const quizKeyRef = ref(db, 'medstudy/config/quizKey');
+  window._fbQuizKeyRef = quizKeyRef;
 
   // Expose Firebase helpers globally for chat key
   window._fbGet = get;
@@ -3252,7 +3254,7 @@ Retorne SOMENTE JSON válido, sem markdown, sem texto extra:
 
 O campo "correct" é o índice 0-3. Crie exatamente 6 questões sobre ${pdfTitle}.`;
 
-      const geminiKey = 'AIzaSyDamghk3KyLaVlkW7TME620jB0n0AB9FMU';
+      const geminiKey = localStorage.getItem('_geminiKey') || localStorage.getItem('_geminiChatKey');
       if (!geminiKey) {
         openGeminiKeyModal();
         throw new Error('Configure sua chave Gemini gratuita primeiro.');
@@ -3334,6 +3336,11 @@ O campo "correct" é o índice 0-3. Crie exatamente 6 questões sobre ${pdfTitle
     if (!val) { alert('Chave inválida. Cole a chave gerada no AI Studio.'); return; }
     localStorage.removeItem('_geminiKey');
     localStorage.setItem('_geminiKey', val);
+    try {
+      if (window._fbSet && window._fbQuizKeyRef) {
+        window._fbSet(window._fbQuizKeyRef, val);
+      }
+    } catch(e) { console.warn('Quiz key save error:', e); }
     document.getElementById('geminiModal').remove();
     alert('✅ Chave atualizada! Tente gerar o quiz novamente.');
   };
@@ -3541,15 +3548,24 @@ O campo "correct" é o índice 0-3. Crie exatamente 6 questões sobre ${pdfTitle
     return `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${getChatKey()}`;
   }
 
-  // Load key from Firebase on startup
+  // Load keys from Firebase on startup
   window.addEventListener('load', async () => {
     try {
-      if (!window._fbGet || !window._fbChatKeyRef) return;
-      const snap = await window._fbGet(window._fbChatKeyRef);
-      if (snap.exists() && snap.val()) {
-        localStorage.setItem('_geminiChatKey', snap.val());
+      if (window._fbGet && window._fbChatKeyRef) {
+        const snap = await window._fbGet(window._fbChatKeyRef);
+        if (snap.exists() && snap.val()) {
+          localStorage.setItem('_geminiChatKey', snap.val());
+        }
       }
     } catch(e) { console.warn('Chat key load error:', e); }
+    try {
+      if (window._fbGet && window._fbQuizKeyRef) {
+        const snap = await window._fbGet(window._fbQuizKeyRef);
+        if (snap.exists() && snap.val()) {
+          localStorage.setItem('_geminiKey', snap.val());
+        }
+      }
+    } catch(e) { console.warn('Quiz key load error:', e); }
   });
 
   function openChatKeyModal() {
