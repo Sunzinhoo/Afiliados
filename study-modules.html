@@ -57,7 +57,7 @@
     return { li, wrap };
   }
 
-  function buildModule(m) {
+  window.buildModule = function buildModule(m) {
     const uid = m.uid;
     const item = document.createElement('div');
     item.className  = 'accordion-item';
