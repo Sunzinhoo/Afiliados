@@ -20,6 +20,12 @@
   const app = initializeApp(firebaseConfig);
   const db = getDatabase(app);
   const dbRef = ref(db, 'medstudy/programada3');
+  const chatKeyRef = ref(db, 'medstudy/config/chatKey');
+
+  // Expose Firebase helpers globally for chat key
+  window._fbGet = get;
+  window._fbSet = set;
+  window._fbChatKeyRef = chatKeyRef;
 
   /* ══════════════════════════════════════════════
      HELPERS — build DOM elements from data
@@ -2359,7 +2365,10 @@
         <div class="fs-chat-dot"></div>
         Assistente IA
       </div>
-      <button class="fs-chat-close" onclick="toggleFsChat()">✕</button>
+      <div style="display:flex;gap:4px;align-items:center;">
+        <button onclick="openChatKeyModal()" title="Configurar chave" style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:0.9rem;padding:2px 4px;border-radius:6px;transition:color 0.2s;" onmouseover="this.style.color='var(--accent)'" onmouseout="this.style.color='var(--text-muted)'">⚙</button>
+        <button class="fs-chat-close" onclick="toggleFsChat()">✕</button>
+      </div>
     </div>
     <div class="fs-chat-messages" id="fs-chat-messages">
       <div class="fs-chat-msg ai">
@@ -3519,13 +3528,82 @@ O campo "correct" é o índice 0-3. Crie exatamente 6 questões sobre ${pdfTitle
   /* ══════════════════════════════
      GEMINI AI CHAT (FULLSCREEN)
   ══════════════════════════════ */
-  const GEMINI_API_KEY = 'AQ.Ab8RN6IQ2IbZ7wEvJoIOlAtN6Uz51B2aJolW-ToVfSMB11GoaQ';
-  const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`;
   let _chatHistory = [];
+
+  function getChatKey() {
+    return localStorage.getItem('_geminiChatKey') || '';
+  }
+
+  function getChatUrl() {
+    return `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${getChatKey()}`;
+  }
+
+  // Load key from Firebase on startup
+  window.addEventListener('load', async () => {
+    try {
+      if (!window._fbGet || !window._fbChatKeyRef) return;
+      const snap = await window._fbGet(window._fbChatKeyRef);
+      if (snap.exists() && snap.val()) {
+        localStorage.setItem('_geminiChatKey', snap.val());
+      }
+    } catch(e) { console.warn('Chat key load error:', e); }
+  });
+
+  function openChatKeyModal() {
+    const existing = document.getElementById('chatKeyModal');
+    if (existing) existing.remove();
+    const overlay = document.createElement('div');
+    overlay.id = 'chatKeyModal';
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:99999;display:flex;align-items:center;justify-content:center;';
+    overlay.innerHTML = `
+      <div style="background:#0f170f;border:1.5px solid rgba(74,222,74,0.3);border-radius:18px;padding:28px;width:90%;max-width:420px;font-family:'DM Sans',sans-serif;">
+        <h3 style="color:#4ade4a;margin:0 0 6px;font-size:1rem;">🔑 Chave Gemini — Chat IA</h3>
+        <p style="color:#6b8f6b;font-size:0.8rem;margin:0 0 16px;">A chave fica salva só no seu navegador, nunca é enviada para ninguém.</p>
+        <div style="background:#0b110b;border:1px solid rgba(74,222,74,0.15);border-radius:10px;padding:12px;margin-bottom:16px;font-size:0.78rem;color:#6b8f6b;line-height:1.7;">
+          <span style="color:#4ade4a;font-weight:600;">Como obter (2 minutos):</span><br>
+          1. Acesse <a href="https://aistudio.google.com/apikey" target="_blank" style="color:#4ade4a;">aistudio.google.com/apikey</a><br>
+          2. Clique em <strong style="color:#e8f5e8;">"Criar chave de API"</strong><br>
+          3. Copie a chave gerada (começa com AIza...)<br>
+          4. Cole abaixo e salve ✅
+        </div>
+        <label style="color:#6b8f6b;font-size:0.78rem;display:block;margin-bottom:6px;">Sua chave Gemini:</label>
+        <input id="chatKeyInput" type="password" placeholder="AIza..."
+          style="width:100%;background:#060a06;border:1px solid rgba(74,222,74,0.25);border-radius:10px;color:#e8f5e8;padding:10px 14px;font-size:0.85rem;outline:none;box-sizing:border-box;margin-bottom:16px;"
+          value="${getChatKey()}" />
+        <div style="display:flex;gap:10px;justify-content:flex-end;">
+          <button onclick="document.getElementById('chatKeyModal').remove()" style="background:transparent;border:1px solid #333;color:#aaa;padding:8px 16px;border-radius:8px;cursor:pointer;font-size:0.8rem;">Cancelar</button>
+          <button onclick="saveChatKey()" style="background:#4ade4a;border:none;color:#060a06;padding:8px 20px;border-radius:8px;cursor:pointer;font-size:0.8rem;font-weight:700;">💾 Salvar</button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(overlay);
+    setTimeout(() => document.getElementById('chatKeyInput').focus(), 100);
+  }
+
+  function saveChatKey() {
+    const val = document.getElementById('chatKeyInput').value.trim();
+    if (!val) {
+      localStorage.removeItem('_geminiChatKey');
+    } else {
+      localStorage.setItem('_geminiChatKey', val);
+      // Save to Firebase
+      try {
+        if (window._fbSet && window._fbChatKeyRef) {
+          window._fbSet(window._fbChatKeyRef, val);
+        }
+      } catch(e) { console.warn('Chat key save error:', e); }
+    }
+    document.getElementById('chatKeyModal').remove();
+  }
 
   function toggleFsChat() {
     const popup = document.getElementById('fs-chat-popup');
     const btn   = document.getElementById('fs-ai-btn');
+    // If no key, open key modal first
+    if (!getChatKey()) {
+      openChatKeyModal();
+      return;
+    }
     popup.classList.toggle('open');
     btn.classList.toggle('active');
     if (popup.classList.contains('open')) {
@@ -3570,7 +3648,7 @@ O campo "correct" é o índice 0-3. Crie exatamente 6 questões sobre ${pdfTitle
     typingEl.classList.add('fs-chat-typing');
 
     try {
-      const res = await fetch(GEMINI_URL, {
+      const res = await fetch(getChatUrl(), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
