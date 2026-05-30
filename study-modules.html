@@ -73,6 +73,7 @@
         </div>
         <div class="acc-meta">
           <span class="acc-duration">${m.duration || '—'}</span>
+          <button class="acc-copy-btn" onclick="copyModule(event,this)" title="Copiar módulo">⧉</button>
           <button class="acc-remove-btn" onclick="removeModule(event,this)" title="Excluir módulo">🗑</button>
           <div class="acc-chevron"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></div>
         </div>
@@ -199,7 +200,7 @@
 
         data.badgeCards.forEach(bc => {
           const card = document.createElement('div');
-          card.className = 'badge-card' + (bc.collapsed ? ' collapsed' : '');
+          card.className = 'badge-card collapsed';
           const listId = bc.listId || ('acc-list-' + Date.now());
           card.innerHTML = `
             <div class="badge-header" onclick="toggleBadgeCard(this)" style="cursor:pointer;">
@@ -212,6 +213,7 @@
                 </div>
               </div>
               <div class="badge-chip">
+                <button class="badge-remove-btn" onclick="removeBadgeCard(event,this)" title="Excluir">🗑</button>
                 <svg style="transition:transform 0.3s;" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
               </div>
             </div>
@@ -225,6 +227,7 @@
           `;
 
           const accordionListEl = card.querySelector('.accordion-list');
+          if (accordionListEl && !accordionListEl.id) accordionListEl.id = bc.listId || ('acc-list-' + Date.now() + Math.random().toString(36).slice(2));
           (bc.modules || []).forEach(m => {
             const item = buildModule(m);
             accordionListEl.appendChild(item);
@@ -995,6 +998,21 @@
   }
   .edit-remove-btn:hover { background: rgba(255,80,80,0.25); }
 
+  .acc-copy-btn {
+    display: none;
+    background: rgba(74,222,74,0.1);
+    border: 1px solid rgba(74,222,74,0.2);
+    border-radius: 8px;
+    color: var(--accent);
+    cursor: pointer;
+    padding: 5px 8px;
+    font-size: 0.85rem;
+    transition: all 0.2s;
+    margin-right: 4px;
+  }
+  .acc-copy-btn:hover { background: rgba(74,222,74,0.25); }
+  body.edit-mode .acc-copy-btn { display: flex; align-items: center; }
+
   .acc-remove-btn {
     display: none;
     flex-shrink: 0;
@@ -1099,6 +1117,21 @@
     margin-top: 2px;
     display: block;
   }
+  .badge-remove-btn {
+    display: none;
+    background: rgba(255,80,80,0.15);
+    border: 1px solid rgba(255,80,80,0.2);
+    border-radius: 8px;
+    color: #ff6b6b;
+    cursor: pointer;
+    padding: 5px 8px;
+    font-size: 0.8rem;
+    transition: all 0.2s;
+    margin-right: 6px;
+  }
+  .badge-remove-btn:hover { background: rgba(255,80,80,0.3); border-color: rgba(255,80,80,0.5); }
+  body.edit-mode .badge-remove-btn { display: flex; align-items: center; }
+
   .badge-drag-handle {
     display: none;
     cursor: grab;
@@ -1551,6 +1584,7 @@
         </div>
       </div>
       <div class="badge-chip">
+        <button class="badge-remove-btn" onclick="removeBadgeCard(event,this)" title="Excluir">🗑</button>
         <svg id="badgeChevron" style="transition:transform 0.3s;" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
       </div>
     </div>
@@ -1578,6 +1612,7 @@
           <div class="acc-meta">
             <span class="acc-duration">2 vídeos</span>
             <div class="acc-chevron"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></div>
+          <button class="acc-copy-btn" onclick="copyModule(event,this)" title="Copiar módulo">⧉</button>
           <button class="acc-remove-btn" onclick="removeModule(event,this)" title="Excluir módulo">🗑</button>
         </div>
         </div>
@@ -1638,6 +1673,7 @@
           <div class="acc-meta">
             <span class="acc-duration">2 vídeos</span>
             <div class="acc-chevron"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></div>
+          <button class="acc-copy-btn" onclick="copyModule(event,this)" title="Copiar módulo">⧉</button>
           <button class="acc-remove-btn" onclick="removeModule(event,this)" title="Excluir módulo">🗑</button>
         </div>
         </div>
@@ -1698,6 +1734,7 @@
           <div class="acc-meta">
             <span class="acc-duration">45 min</span>
             <div class="acc-chevron"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></div>
+          <button class="acc-copy-btn" onclick="copyModule(event,this)" title="Copiar módulo">⧉</button>
           <button class="acc-remove-btn" onclick="removeModule(event,this)" title="Excluir módulo">🗑</button>
         </div>
         </div>
@@ -1745,6 +1782,7 @@
           <div class="acc-meta">
             <span class="acc-duration">28 min</span>
             <div class="acc-chevron"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></div>
+          <button class="acc-copy-btn" onclick="copyModule(event,this)" title="Copiar módulo">⧉</button>
           <button class="acc-remove-btn" onclick="removeModule(event,this)" title="Excluir módulo">🗑</button>
         </div>
         </div>
@@ -1785,6 +1823,7 @@
           <div class="acc-meta">
             <span class="acc-duration">40 min</span>
             <div class="acc-chevron"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></div>
+          <button class="acc-copy-btn" onclick="copyModule(event,this)" title="Copiar módulo">⧉</button>
           <button class="acc-remove-btn" onclick="removeModule(event,this)" title="Excluir módulo">🗑</button>
         </div>
         </div>
@@ -1832,6 +1871,7 @@
           <div class="acc-meta">
             <span class="acc-duration">36 min</span>
             <div class="acc-chevron"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></div>
+          <button class="acc-copy-btn" onclick="copyModule(event,this)" title="Copiar módulo">⧉</button>
           <button class="acc-remove-btn" onclick="removeModule(event,this)" title="Excluir módulo">🗑</button>
         </div>
         </div>
@@ -1879,6 +1919,7 @@
           <div class="acc-meta">
             <span class="acc-duration">50 min</span>
             <div class="acc-chevron"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></div>
+          <button class="acc-copy-btn" onclick="copyModule(event,this)" title="Copiar módulo">⧉</button>
           <button class="acc-remove-btn" onclick="removeModule(event,this)" title="Excluir módulo">🗑</button>
         </div>
         </div>
@@ -1926,6 +1967,7 @@
           <div class="acc-meta">
             <span class="acc-duration">33 min</span>
             <div class="acc-chevron"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></div>
+          <button class="acc-copy-btn" onclick="copyModule(event,this)" title="Copiar módulo">⧉</button>
           <button class="acc-remove-btn" onclick="removeModule(event,this)" title="Excluir módulo">🗑</button>
         </div>
         </div>
@@ -1973,6 +2015,7 @@
           <div class="acc-meta">
             <span class="acc-duration">26 min</span>
             <div class="acc-chevron"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></div>
+          <button class="acc-copy-btn" onclick="copyModule(event,this)" title="Copiar módulo">⧉</button>
           <button class="acc-remove-btn" onclick="removeModule(event,this)" title="Excluir módulo">🗑</button>
         </div>
         </div>
@@ -2013,6 +2056,7 @@
           <div class="acc-meta">
             <span class="acc-duration">35 min</span>
             <div class="acc-chevron"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></div>
+          <button class="acc-copy-btn" onclick="copyModule(event,this)" title="Copiar módulo">⧉</button>
           <button class="acc-remove-btn" onclick="removeModule(event,this)" title="Excluir módulo">🗑</button>
         </div>
         </div>
@@ -2153,6 +2197,67 @@
   let _dragType = null; // 'module' or 'video'
 
   function initDragDrop() {}
+
+  // ── COPY / PASTE MODULE ──
+  window._copiedModule = null;
+
+  function copyModule(e, btn) {
+    e.stopPropagation();
+    const item = btn.closest('.accordion-item');
+    const trigger = item.querySelector('.accordion-trigger');
+    const title    = trigger.querySelector('.acc-title')?.textContent?.trim() || '';
+    const subtitle = trigger.querySelector('.acc-subtitle')?.textContent?.trim() || '';
+    const icon     = trigger.querySelector('.acc-icon')?.textContent?.trim() || '📖';
+    const duration = trigger.querySelector('.acc-duration')?.textContent?.trim() || '—';
+    const num      = trigger.querySelector('.acc-number')?.textContent?.trim() || '01';
+    const videos   = [];
+    item.querySelectorAll('.video-item:not(.quiz-inline)').forEach(li => {
+      const fileId = li.dataset.fileId || '';
+      if (!fileId) return;
+      const t    = li.querySelector('.video-title')?.textContent?.trim() || '';
+      const type = li.dataset.type || (fileId.startsWith('pdf-') ? 'pdf' : 'video');
+      videos.push({ fileId, title: t, type, done: false });
+    });
+    window._copiedModule = { title, subtitle, icon, duration, num, videos };
+
+    // Show paste buttons on all other accordion lists
+    document.querySelectorAll('.paste-module-row').forEach(r => r.remove());
+    document.querySelectorAll('.accordion-list').forEach((list, i) => {
+      if (list.contains(item)) return;
+      if (!list.id) list.id = 'acc-list-auto-' + i;
+      const row = document.createElement('div');
+      row.className = 'paste-module-row add-module-row';
+      row.style.borderColor = 'var(--accent)';
+      row.style.color = 'var(--accent)';
+      row.dataset.targetList = list.id;
+      row.innerHTML = `⧉ Colar módulo "${title}" aqui`;
+      row.onclick = function() { pasteModule(this); };
+      list.appendChild(row);
+    });
+
+    btn.textContent = '✓';
+    setTimeout(() => { btn.textContent = '⧉'; }, 1500);
+  }
+
+  function pasteModule(row) {
+    if (!window._copiedModule) { alert('Nada copiado'); return; }
+    const listId = row.dataset.targetList;
+    const list = listId ? document.getElementById(listId) : row.closest('.accordion-list');
+    if (!list) { alert('Lista não encontrada: ' + listId); return; }
+    const m = { ...window._copiedModule, uid: 'copied-' + Date.now() };
+    const item = buildModule(m);
+    list.insertBefore(item, row);
+    row.remove();
+    document.querySelectorAll('.paste-module-row').forEach(r => r.remove());
+    if (window._saveToFirebase) window._saveToFirebase();
+  }
+
+  function removeBadgeCard(e, btn) {
+    e.stopPropagation();
+    if (!confirm('Excluir este conteúdo? Esta ação não pode ser desfeita.')) return;
+    btn.closest('.badge-card').remove();
+    if (window._saveToFirebase) window._saveToFirebase();
+  }
 
   function toggleBadgeCard(header) {
     header.closest('.badge-card').classList.toggle('collapsed');
@@ -2397,6 +2502,7 @@
         </div>
         <div class="acc-meta">
           <span class="acc-duration">—</span>
+          <button class="acc-copy-btn" onclick="copyModule(event,this)" title="Copiar módulo">⧉</button>
           <button class="acc-remove-btn" onclick="removeModule(event,this)" title="Excluir módulo">🗑</button>
           <div class="acc-chevron"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></div>
         </div>
